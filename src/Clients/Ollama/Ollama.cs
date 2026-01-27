@@ -81,20 +81,21 @@ namespace Tailgrab.Clients.Ollama
         public static async Task ProfileCheckTask(ConcurrentPriorityQueue<IHavePriority<int>, int> priorityQueue, Dictionary<string, string> processData, ServiceRegistry serviceRegistry)
         {
             string? ollamaCloudKey = ConfigStore.LoadSecret(Tailgrab.Common.Common.Registry_Ollama_API_Key);
-
+            OllamaApiClient? ollamaApi = null;
             if (ollamaCloudKey is null)
             {
                 System.Windows.MessageBox.Show("Ollama API Credentials are not set yet, use the Config / Secrets tab to update credenials and restart Tailgrab.", "Error", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
-                return;
+            } 
+            else
+            {
+                string ollamaEndpoint = ConfigStore.LoadSecret(Tailgrab.Common.Common.Registry_Ollama_API_Endpoint) ?? Tailgrab.Common.Common.Default_Ollama_API_Endpoint;
+                HttpClient client = new HttpClient();
+                client.BaseAddress = new Uri(ollamaEndpoint);
+                client.DefaultRequestHeaders.Add("Authorization", "Bearer " + ollamaCloudKey);
+                ollamaApi = new OllamaApiClient(client);
+                string? ollamaModel = ConfigStore.LoadSecret(Tailgrab.Common.Common.Registry_Ollama_API_Model) ?? Tailgrab.Common.Common.Default_Ollama_API_Model;
+                ollamaApi.SelectedModel = ollamaModel;
             }
-
-            string ollamaEndpoint = ConfigStore.LoadSecret(Tailgrab.Common.Common.Registry_Ollama_API_Endpoint) ?? Tailgrab.Common.Common.Default_Ollama_API_Endpoint;
-            HttpClient client = new HttpClient();
-            client.BaseAddress = new Uri(ollamaEndpoint);
-            client.DefaultRequestHeaders.Add("Authorization", "Bearer " + ollamaCloudKey);
-            OllamaApiClient? ollamaApi = new OllamaApiClient(client);
-            string ollamaModel = ConfigStore.LoadSecret(Tailgrab.Common.Common.Registry_Ollama_API_Model) ?? Tailgrab.Common.Common.Default_Ollama_API_Model;
-            ollamaApi.SelectedModel = ollamaModel;
 
             OllamaClient.logger.Info($"OLlama Queue Running");
             while (true)
