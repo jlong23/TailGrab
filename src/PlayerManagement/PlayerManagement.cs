@@ -367,11 +367,6 @@ namespace Tailgrab.PlayerManagement
 
         public void ClearAllPlayers(AbstractLineHandler handler)
         {
-            foreach (string avatarName in avatarsInSession)
-            {
-                serviceRegistry.GetAvatarManager().AddAvatarsInSession(avatarName);
-            }
-
             foreach (var player in playersByUserId.Values)
             {
                 player.InstanceEndTime = DateTime.Now;
