@@ -1,9 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using NLog;
 using System.Media;
-using Tailgrab;
 using Tailgrab.Models;
-using Tailgrab.Clients.VRChat;
 using VRChat.API.Model;
 
 namespace Tailgrab.AvatarManagement
@@ -18,7 +16,7 @@ namespace Tailgrab.AvatarManagement
 
         public AvatarManagementService(ServiceRegistry serviceRegistry)
         {
-            _serviceRegistry = serviceRegistry;            
+            _serviceRegistry = serviceRegistry;
         }
 
         public void AddAvatar(AvatarInfo avatar)
@@ -69,7 +67,7 @@ namespace Tailgrab.AvatarManagement
 
             int postion = 0;
             foreach (var avatarId in avatarIdInCache)
-            { 
+            {
                 AvatarInfo? dbAvatarInfo = dbContext.AvatarInfos.Find(avatarId);
                 bool updateNeeded = false;
                 if (dbAvatarInfo == null)
@@ -121,7 +119,7 @@ namespace Tailgrab.AvatarManagement
                                 var entry = dbContext.Entry(dbAvatarInfo);
                                 if (entry.State == Microsoft.EntityFrameworkCore.EntityState.Detached)
                                 {
-                                dbContext.Attach(dbAvatarInfo);
+                                    dbContext.Attach(dbAvatarInfo);
                                     entry = _serviceRegistry.GetDBContext().Entry(dbAvatarInfo);
                                 }
 
@@ -147,8 +145,8 @@ namespace Tailgrab.AvatarManagement
                     {
                         logger.Error($"Error fetching avatar: {ex.Message}");
                     }
-                    
-                    if (avatarData == null && dbAvatarInfo == null )
+
+                    if (avatarData == null && dbAvatarInfo == null)
                     {
                         var avatarInfo = new AvatarInfo
                         {
@@ -180,7 +178,7 @@ namespace Tailgrab.AvatarManagement
             avatarsInSession.Clear();
         }
 
-        public void GetAvatarsFromUser( string userId, string avatarName )
+        public void GetAvatarsFromUser(string userId, string avatarName)
         {
 
             logger.Debug($"Fetching avatars for user {userId} to find avatar named {avatarName}");
@@ -254,7 +252,7 @@ namespace Tailgrab.AvatarManagement
         {
             if (!avatarsInSession.Contains(avatarName))
             {
-                 avatarsInSession.Add(avatarName);
+                avatarsInSession.Add(avatarName);
             }
         }
     }

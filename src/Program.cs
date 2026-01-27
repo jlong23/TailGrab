@@ -1,6 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using NLog;
-using System.Diagnostics;
 using System.IO;
 using System.Reflection;
 using System.Text;
@@ -17,12 +16,12 @@ public class FileTailer
     /// <summary>
     /// A list of the Regex Line Matchers that are used to process log lines.
     /// </summary>
-    static List<ILineHandler> HandlerList = new List<ILineHandler>{};
+    static List<ILineHandler> HandlerList = new List<ILineHandler> { };
 
     /// <summary>
     /// A List of opened file paths to avoid opening the same file multiple times.
     /// </summary>
-    static List<string> OpenedFiles = new List<string>{};
+    static List<string> OpenedFiles = new List<string> { };
 
     /// <summary>
     /// The path to the user's profile directory.
@@ -46,7 +45,7 @@ public class FileTailer
     /// </summary>
     public static async Task TailFileAsync(string filePath)
     {
-        if( OpenedFiles.Contains(filePath) )
+        if (OpenedFiles.Contains(filePath))
         {
             return;
         }
@@ -77,9 +76,9 @@ public class FileTailer
                     foreach (ILineHandler handler in HandlerList)
                     {
                         if (handler.HandleLine(line))
-                        {                        
+                        {
                             break;
-                        }                        
+                        }
                     }
                 }
 
@@ -92,7 +91,7 @@ public class FileTailer
     /// <summary>
     /// Watch and dispatch File Tailing.
     /// </summary>
-    public static async Task WatchPath( string path )
+    public static async Task WatchPath(string path)
     {
         LogWatcher.Path = Path.GetDirectoryName(path)!;
         LogWatcher.Filter = Path.GetFileName("output_log*.txt");
@@ -120,9 +119,9 @@ public class FileTailer
                 _ = Task.Run(() => TailFileAsync(f));
             }
         }
-        catch 
-        { 
-            /* ignore errors */ 
+        catch
+        {
+            /* ignore errors */
         }
 
 

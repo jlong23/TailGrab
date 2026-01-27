@@ -10,7 +10,6 @@ using Tailgrab.Config;
 using Tailgrab.Models;
 using Tailgrab.PlayerManagement;
 using VRChat.API.Model;
-using static System.Windows.Forms.VisualStyles.VisualStyleElement.StartPanel;
 
 namespace Tailgrab.Clients.Ollama
 {
@@ -24,17 +23,17 @@ namespace Tailgrab.Clients.Ollama
         public string? UserId { get; set; }
         public string? UserBio { get; set; }
 
-        public string MD5Hash 
-        { 
+        public string MD5Hash
+        {
             get
             {
-                if( string.IsNullOrEmpty(UserBio))
+                if (string.IsNullOrEmpty(UserBio))
                 {
                     return string.Empty;
                 }
 
                 // Remove all whitespace for hashing
-                return Checksum.CreateMD5(sWhitespace.Replace(UserBio,""));
+                return Checksum.CreateMD5(sWhitespace.Replace(UserBio, ""));
             }
         }
     }
@@ -48,7 +47,7 @@ namespace Tailgrab.Clients.Ollama
 
         public OllamaClient(ServiceRegistry registry)
         {
-            if(registry == null)
+            if (registry == null)
             {
                 throw new ArgumentNullException(nameof(registry));
             }
@@ -63,14 +62,14 @@ namespace Tailgrab.Clients.Ollama
             logger.Debug($"Checking user profile with AI : {userId}");
 
             try
-            {                
+            {
                 QueuedProcess process = new QueuedProcess
                 {
                     UserId = userId,
                     Priority = 1
                 };
 
-                priorityQueue.Enqueue(process);                
+                priorityQueue.Enqueue(process);
             }
             catch (Exception ex)
             {
@@ -78,7 +77,7 @@ namespace Tailgrab.Clients.Ollama
 
             }
         }
-        public static async Task ProfileCheckTask(ConcurrentPriorityQueue<IHavePriority<int>, int> priorityQueue, Dictionary<string, string> processData, ServiceRegistry serviceRegistry )
+        public static async Task ProfileCheckTask(ConcurrentPriorityQueue<IHavePriority<int>, int> priorityQueue, Dictionary<string, string> processData, ServiceRegistry serviceRegistry)
         {
             string? ollamaCloudKey = ConfigStore.LoadSecret(Tailgrab.Common.Common.Registry_Ollama_API_Key);
 
@@ -155,7 +154,7 @@ namespace Tailgrab.Clients.Ollama
             }
         }
 
-        private async static void GetUserGroupInformation(ServiceRegistry serviceRegistry, TailgrabDBContext dBContext, List<LimitedUserGroups> userGroups, QueuedProcess item )
+        private async static void GetUserGroupInformation(ServiceRegistry serviceRegistry, TailgrabDBContext dBContext, List<LimitedUserGroups> userGroups, QueuedProcess item)
         {
             logger.Debug($"Processing User Group subscription for userId: {item.UserId}");
             bool isSuspectGroup = false;
@@ -273,9 +272,9 @@ namespace Tailgrab.Clients.Ollama
                 logger.Debug($"User profile lookup fails for a null userId");
             }
         }
-               
 
-        private static bool IsEvaluated( string? evaluated )
+
+        private static bool IsEvaluated(string? evaluated)
         {
             if (string.IsNullOrEmpty(evaluated))
             {
@@ -286,7 +285,7 @@ namespace Tailgrab.Clients.Ollama
                     CheckLines(evaluated, "Harrassment & Bullying") ||
                     CheckLines(evaluated, "Self Harm"))
             {
-                    return true;
+                return true;
             }
 
             return false;
