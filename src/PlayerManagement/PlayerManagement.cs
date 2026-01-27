@@ -302,7 +302,7 @@ namespace Tailgrab.PlayerManagement
                     user.IsBos = 0;
                     user.CreatedAt = DateTime.Now;
                     user.UpdatedAt = DateTime.Now;
-                    user.ElapsedHours = timeDifference.TotalMinutes;
+                    user.ElapsedMinutes = timeDifference.TotalMinutes;
                     dBContext.Add(user);
                     dBContext.SaveChanges();
                 }
@@ -310,7 +310,7 @@ namespace Tailgrab.PlayerManagement
                 {
                     user.DisplayName = player.DisplayName;
                     user.UpdatedAt = DateTime.Now;
-                    user.ElapsedHours = user.ElapsedHours + timeDifference.TotalMinutes;
+                    user.ElapsedMinutes = user.ElapsedMinutes + timeDifference.TotalMinutes;
                     dBContext.Update(user);
                     dBContext.SaveChanges();
                 }
