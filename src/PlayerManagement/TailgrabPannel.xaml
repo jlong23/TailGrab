@@ -339,7 +339,52 @@
 
             <TabItem Header="Prints">
                 <Grid>
-                    <TextBlock Margin="12" Text="Prints view not implemented yet." />
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                        <TextBox Name="PrintFilterBox" Width="300" Margin="0,0,8,0" />
+                        <Button Content="Apply Filter" Click="PrintApplyFilter_Click" Margin="0,0,6,0"/>
+                        <Button Content="Clear Filter" Click="PrintClearFilter_Click"/>
+                    </StackPanel>
+
+                    <!-- Show each player and their prints -->
+                    <ListView Name="PrintListView" Grid.Row="1" ItemsSource="{Binding PrintView}">
+                        <ListView.ItemTemplate>
+                            <DataTemplate>
+                                <Border BorderBrush="Gray" BorderThickness="0,0,0,1" Padding="6">
+                                    <StackPanel Orientation="Vertical">
+                                        <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                            <TextBlock FontWeight="Bold" Text="{Binding DisplayName}" />
+                                            <TextBlock Margin="8,0,0,0" FontStyle="Italic" Text="{Binding UserId}" />
+                                        </StackPanel>
+                                        <ItemsControl ItemsSource="{Binding Prints}">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Grid Margin="0,2,0,2">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="300" />
+                                                            <ColumnDefinition Width="300" />
+                                                            <ColumnDefinition Width="200" />
+                                                            <ColumnDefinition Width="100" />
+                                                        </Grid.ColumnDefinitions>
+                                                        <TextBlock Grid.Column="0" Text="{Binding Id}" />
+                                                        <TextBlock Grid.Column="1" Text="{Binding AuthorName}" />
+                                                        <TextBlock Grid.Column="2" Text="{Binding Timestamp, StringFormat={}{0:u}}" />
+                                                        <TextBlock Grid.Column="3">
+                                                            <Hyperlink NavigateUri="{Binding Url}" RequestNavigate="PrintHyperlink_RequestNavigate">Open</Hyperlink>
+                                                        </TextBlock>
+                                                    </Grid>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ListView.ItemTemplate>
+                    </ListView>
                 </Grid>
             </TabItem>
 

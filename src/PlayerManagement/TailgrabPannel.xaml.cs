@@ -22,6 +22,7 @@ namespace Tailgrab.PlayerManagement
         public ObservableCollection<PlayerViewModel> ActivePlayers { get; } = new ObservableCollection<PlayerViewModel>();
         public ObservableCollection<PlayerViewModel> PastPlayers { get; } = new ObservableCollection<PlayerViewModel>();
         public ObservableCollection<PlayerViewModel> StickerPlayers { get; } = new ObservableCollection<PlayerViewModel>();
+        public ObservableCollection<PlayerViewModel> PrintPlayers { get; } = new ObservableCollection<PlayerViewModel>();
         public AvatarVirtualizingCollection AvatarDbItems { get; private set; }
         public GroupVirtualizingCollection GroupDbItems { get; private set; }
         public UserVirtualizingCollection UserDbItems { get; private set; }
@@ -32,6 +33,7 @@ namespace Tailgrab.PlayerManagement
         public ICollectionView UserDbView { get; }
         public ICollectionView PastView { get; }
         public ICollectionView StickerView { get; }
+        public ICollectionView PrintView { get; }
 
         public PlayerViewModel? SelectedActive { get; set; }
         public PlayerViewModel? SelectedPast { get; set; }
@@ -55,15 +57,19 @@ namespace Tailgrab.PlayerManagement
 
             StickerView = CollectionViewSource.GetDefaultView(StickerPlayers);
 
+            PrintView = CollectionViewSource.GetDefaultView(PrintPlayers);
+
             AvatarDbItems = new AvatarVirtualizingCollection(_serviceRegistry);
             AvatarDbView = CollectionViewSource.GetDefaultView(AvatarDbItems);
             // The virtualizing collection returns items ordered by AvatarName already.
 
             GroupDbItems = new GroupVirtualizingCollection(_serviceRegistry);
             GroupDbView = CollectionViewSource.GetDefaultView(GroupDbItems);
+
             // Group collection is ordered by GroupName at source
             UserDbItems = new UserVirtualizingCollection(_serviceRegistry);
             UserDbView = CollectionViewSource.GetDefaultView(UserDbItems);
+
             // User collection ordered by DisplayName at source
             UserDbView.SortDescriptions.Add(new SortDescription("DisplayName", ListSortDirection.Ascending));
 
@@ -111,9 +117,31 @@ namespace Tailgrab.PlayerManagement
             fallbackTimer.Start();
 
             this.Closed += (s, e) => Dispose();
-
-
         }
+
+    public class PrintInfoViewModel : INotifyPropertyChanged
+    {
+        public string Id { get; set; }
+        public string AuthorName { get; set; }
+        public string OwnerId { get; set; }
+        public DateTime Timestamp { get; set; }
+        public string Url { get; set; }
+
+        public PrintInfoViewModel(VRChat.API.Model.Print p)
+        {
+            Id = p.Id ?? string.Empty;
+            AuthorName = p.AuthorName ?? string.Empty;
+            OwnerId = p.OwnerId ?? string.Empty;
+            Timestamp = p.Timestamp;
+            Url = p.Files.Image ?? string.Empty;
+        }
+
+        public event PropertyChangedEventHandler? PropertyChanged;
+        protected void OnPropertyChanged(string propertyName)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
+    }
 
     public class UserInfoViewModel : INotifyPropertyChanged
     {
@@ -778,6 +806,7 @@ namespace Tailgrab.PlayerManagement
             var vm = ActivePlayers.FirstOrDefault(x => x.UserId == p.UserId);
             var vmPast = PastPlayers.FirstOrDefault(x => x.UserId == p.UserId);
             var vmSticker = StickerPlayers.FirstOrDefault(x => x.UserId == p.UserId);
+            var vmPrint = PrintPlayers.FirstOrDefault(x => x.UserId == p.UserId);
 
             if (p.InstanceEndTime == null)
             {
@@ -814,6 +843,19 @@ namespace Tailgrab.PlayerManagement
                         StickerPlayers.Add(new PlayerViewModel(p));
                     }
                 }
+
+                // If player has prints, add/update print list
+                if (p.PrintData != null && p.PrintData.Count > 0)
+                {
+                    if (vmPrint != null)
+                    {
+                        vmPrint.UpdateFrom(p);
+                    }
+                    else
+                    {
+                        PrintPlayers.Add(new PlayerViewModel(p));
+                    }
+                }
             }
             else
             {
@@ -831,6 +873,11 @@ namespace Tailgrab.PlayerManagement
                 if (vm != null)
                 {
                     ActivePlayers.Remove(vm);
+                }
+                // move prints if present
+                if (vmPrint != null)
+                {
+                    PrintPlayers.Remove(vmPrint);
                 }
             }
         }
@@ -1116,6 +1163,47 @@ namespace Tailgrab.PlayerManagement
 
         #endregion
 
+        #region Print handlers
+
+        private void PrintApplyFilter_Click(object sender, RoutedEventArgs e)
+        {
+            ApplyFilter(PrintView, PrintFilterBox.Text);
+        }
+
+        private void PrintClearFilter_Click(object sender, RoutedEventArgs e)
+        {
+            PrintFilterBox.Text = string.Empty;
+            ApplyFilter(PrintView, string.Empty);
+        }
+
+        private void PrintFilterBySelected_Click(object sender, RoutedEventArgs e)
+        {
+            if (SelectedPast != null)
+            {
+                PrintFilterBox.Text = SelectedPast.DisplayName;
+                ApplyFilter(PrintView, PastFilterBox.Text);
+            }
+        }
+
+        #endregion
+
+        private void PrintHyperlink_RequestNavigate(object? sender, System.Windows.Navigation.RequestNavigateEventArgs e)
+        {
+            try
+            {
+                logger.Info($"Opening print URL: {e.Uri}");
+                var psi = new System.Diagnostics.ProcessStartInfo(e.Uri.AbsoluteUri)
+                {
+                    UseShellExecute = true
+                };
+                System.Diagnostics.Process.Start(psi);
+            }
+            catch (Exception ex)
+            {
+                logger?.Error(ex, "Failed to open print URL");
+            }
+            e.Handled = true;
+        }
 
         private void ApplyFilter(ICollectionView view, string filterText)
         {
@@ -1197,6 +1285,7 @@ namespace Tailgrab.PlayerManagement
         public string AIEval { get; private set; }
         public bool IsWatched { get; set; } = false;
         public string WatchCode { get; private set; } = string.Empty;
+        public ObservableCollection<PrintInfoViewModel> Prints { get; private set; } = new ObservableCollection<PrintInfoViewModel>();
 
         public string HighlightClass
         {
@@ -1225,6 +1314,14 @@ namespace Tailgrab.PlayerManagement
             AIEval = p.AIEval ?? "Not Evaluated";
             IsWatched = p.IsWatched;
             WatchCode = p.WatchCode;
+            // populate prints
+            if (p.PrintData != null)
+            {
+                foreach (var pr in p.PrintData.Values)
+                {
+                    Prints.Add(new PrintInfoViewModel(pr));
+                }
+            }
         }
 
         public void UpdateFrom(Player p)
@@ -1248,6 +1345,16 @@ namespace Tailgrab.PlayerManagement
             if( WatchCode != p.WatchCode) { WatchCode = p.WatchCode; changed = true; }
 
             if (changed) OnPropertyChanged(string.Empty);
+            // update prints collection
+            if (p.PrintData != null)
+            {
+                // simple replace strategy
+                Prints.Clear();
+                foreach (var pr in p.PrintData.Values)
+                {
+                    Prints.Add(new PrintInfoViewModel(pr));
+                }
+            }
         }
 
         private System.Windows.Media.ImageSource? LoadImageFromUrl(string? url)
@@ -1277,6 +1384,21 @@ namespace Tailgrab.PlayerManagement
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
     }
+
+
+    public class PrintInfoViewModel
+    {
+        public string PrintId { get; set; }
+        public DateTime CreatedAt { get; set; }
+        public string PrintUrl { get; set; }
+        public PrintInfoViewModel(VRChat.API.Model.Print p)
+        {
+            PrintId = p.Id;
+            CreatedAt = p.CreatedAt;
+            PrintUrl = p.Files.Image;
+        }
+    }
+
 
     public class AvatarInfoViewModel : INotifyPropertyChanged
     {
