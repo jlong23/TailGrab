@@ -399,22 +399,31 @@
                     <TabItem Header="Known Avatars">
                         <Grid>
                             <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="7*"/>
-                                <ColumnDefinition Width="32*"/>
+                                <ColumnDefinition Width="29*"/>
+                                <ColumnDefinition Width="89*"/>
+                                <ColumnDefinition Width="27*"/>
+                                <ColumnDefinition Width="44*"/>
+                                <ColumnDefinition Width="16*"/>
+                                <ColumnDefinition Width="172*"/>
+                                <ColumnDefinition Width="284*"/>
+                                <ColumnDefinition Width="392*"/>
                             </Grid.ColumnDefinitions>
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="*" />
                             </Grid.RowDefinitions>
 
-                            <StackPanel Orientation="Horizontal" Margin="0,0,0,6" Grid.ColumnSpan="2">
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,6" Grid.ColumnSpan="8">
                                 <TextBox Name="AvatarDbFilterBox" Width="300" Margin="0,0,8,0" />
                                 <Button Content="Apply Filter" Click="AvatarDbApplyFilter_Click" Margin="0,0,6,0"/>
                                 <Button Content="Clear Filter" Click="AvatarDbClearFilter_Click"/>
                                 <Button Content="Refresh" Click="AvatarDbRefresh_Click" Margin="8,0,0,0"/>
+                                <!-- Fetch avatar by id -->
+                                <TextBox Name="AvatarIdBox" Width="360" Margin="12,0,8,0" ToolTip="Enter Avatar ID to fetch from VRChat" />
+                                <Button Content="Fetch Avatar by ID" Click="AvatarFetch_Click" Margin="0,0,0,0"/>
                             </StackPanel>
 
-                            <DataGrid Name="AvatarDbGrid" Grid.Row="1" AutoGenerateColumns="False" CanUserSortColumns="True" IsReadOnly="False" ItemsSource="{Binding AvatarDbView}" CellEditEnding="AvatarDbGrid_CellEditEnding" Grid.ColumnSpan="2">
+                            <DataGrid Name="AvatarDbGrid" Grid.Row="1" AutoGenerateColumns="False" CanUserSortColumns="True" IsReadOnly="False" ItemsSource="{Binding AvatarDbView}" CellEditEnding="AvatarDbGrid_CellEditEnding" Grid.ColumnSpan="8">
                                 <DataGrid.Columns>
                                     <DataGridTextColumn Header="Avatar Name" Binding="{Binding AvatarName}" SortMemberPath="AvatarName" Width="*" />
                                     <DataGridTextColumn Header="Avatar ID" Binding="{Binding AvatarId}" SortMemberPath="AvatarId" Width="300" />
@@ -483,6 +492,9 @@
                                 <Button Content="Apply Filter" Click="GroupDbApplyFilter_Click" Margin="0,0,6,0"/>
                                 <Button Content="Clear Filter" Click="GroupDbClearFilter_Click"/>
                                 <Button Content="Refresh" Click="GroupDbRefresh_Click" Margin="8,0,0,0"/>
+                                <!-- Fetch Group by id -->
+                                <TextBox Name="GroupIdBox" Width="360" Margin="12,0,8,0" ToolTip="Enter Group ID to fetch from VRChat" />
+                                <Button Content="Fetch Group by ID" Click="GroupFetch_Click" Margin="0,0,0,0"/>
                             </StackPanel>
 
                             <DataGrid Name="GroupDbGrid" Grid.Row="1" AutoGenerateColumns="False" CanUserSortColumns="True" IsReadOnly="False" ItemsSource="{Binding GroupDbView}" CellEditEnding="GroupDbGrid_CellEditEnding" Grid.ColumnSpan="2">
@@ -556,7 +568,7 @@
                                 <DataGrid.Columns>
                                     <DataGridTextColumn Header="Display Name" Binding="{Binding DisplayName}" SortMemberPath="DisplayName" Width="*" />
                                     <DataGridTextColumn Header="User ID" Binding="{Binding UserId}" SortMemberPath="UserId" Width="300" />
-                                    <DataGridTextColumn Header="Elapsed Minutes" Binding="{Binding ElapsedMinutes, StringFormat={}{0:#,###,###.#}}" SortMemberPath="ElapsedMinutes" Width="120">
+                                    <DataGridTextColumn Header="Elapsed Minutes" Binding="{Binding ElapsedMinutes, StringFormat=N1}" SortMemberPath="ElapsedMinutes" Width="120">
                                         <DataGridTextColumn.ElementStyle>
                                             <Style TargetType="TextBlock">
                                                 <Setter Property="HorizontalAlignment" Value="Right" />
