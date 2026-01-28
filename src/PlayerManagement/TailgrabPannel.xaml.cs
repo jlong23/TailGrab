@@ -104,6 +104,25 @@ namespace Tailgrab.PlayerManagement
             RefreshGroupDb();
             RefreshUserDb();
 
+            // Populate sound combo boxes
+            try
+            {
+                var sounds = Tailgrab.Common.SoundManager.GetAvailableSounds();
+                AvatarAlertCombo.ItemsSource = sounds;
+                GroupAlertCombo.ItemsSource = sounds;
+                ProfileAlertCombo.ItemsSource = sounds;
+
+                // Load saved registry values into selected items
+                var avatar = ConfigStore.LoadSecret(Tailgrab.Common.Common.Registry_Alert_Avatar);
+                var group = ConfigStore.LoadSecret(Tailgrab.Common.Common.Registry_Alert_Group);
+                var profile = ConfigStore.LoadSecret(Tailgrab.Common.Common.Registry_Alert_Profile);
+
+                if (!string.IsNullOrEmpty(avatar)) AvatarAlertCombo.SelectedItem = avatar;
+                if (!string.IsNullOrEmpty(group)) GroupAlertCombo.SelectedItem = group;
+                if (!string.IsNullOrEmpty(profile)) ProfileAlertCombo.SelectedItem = profile;
+            }
+            catch { }
+
             // Subscribe to PlayerManager events for reactive updates
             PlayerManager.PlayerChanged += PlayerManager_PlayerChanged;
 
@@ -603,6 +622,34 @@ namespace Tailgrab.PlayerManagement
                 ConfigStore.SaveSecret(Tailgrab.Common.Common.Registry_Ollama_API_Endpoint, VrOllamaEndpointBox.Text ?? Tailgrab.Common.Common.Default_Ollama_API_Endpoint);
                 ConfigStore.SaveSecret(Tailgrab.Common.Common.Registry_Ollama_API_Prompt, VrOllamaPromptBox.Text ?? Tailgrab.Common.Common.Default_Ollama_API_Prompt);
                 ConfigStore.SaveSecret(Tailgrab.Common.Common.Registry_Ollama_API_Model, VrOllamaModelBox.Text ?? Tailgrab.Common.Common.Default_Ollama_API_Model);
+
+                // Save alert sound selections (or delete if none)
+                if (AvatarAlertCombo.SelectedItem is string avatarSound && !string.IsNullOrEmpty(avatarSound))
+                {
+                    ConfigStore.SaveSecret(Tailgrab.Common.Common.Registry_Alert_Avatar, avatarSound);
+                }
+                else
+                {
+                    ConfigStore.DeleteSecret(Tailgrab.Common.Common.Registry_Alert_Avatar);
+                }
+
+                if (GroupAlertCombo.SelectedItem is string groupSound && !string.IsNullOrEmpty(groupSound))
+                {
+                    ConfigStore.SaveSecret(Tailgrab.Common.Common.Registry_Alert_Group, groupSound);
+                }
+                else
+                {
+                    ConfigStore.DeleteSecret(Tailgrab.Common.Common.Registry_Alert_Group);
+                }
+
+                if (ProfileAlertCombo.SelectedItem is string profileSound && !string.IsNullOrEmpty(profileSound))
+                {
+                    ConfigStore.SaveSecret(Tailgrab.Common.Common.Registry_Alert_Profile, profileSound);
+                }
+                else
+                {
+                    ConfigStore.DeleteSecret(Tailgrab.Common.Common.Registry_Alert_Profile);
+                }
 
                 System.Windows.MessageBox.Show("Configuration saved. Restart the Applicaton for all changes to take affect.", "Config", MessageBoxButton.OK, MessageBoxImage.Information);
             }

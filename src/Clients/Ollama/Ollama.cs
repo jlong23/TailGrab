@@ -197,7 +197,9 @@ namespace Tailgrab.Clients.Ollama
                     player.IsGroupWatch = true;
                     serviceRegistry.GetPlayerManager().OnPlayerChanged(PlayerChangedEventArgs.ChangeType.Updated, player);
                 }
-                SystemSounds.Hand.Play();
+
+                string? soundSetting = ConfigStore.LoadSecret(Common.Common.Registry_Alert_Group) ?? "Hand";
+                SoundManager.PlaySound(soundSetting);
             }
         }
 
@@ -288,6 +290,10 @@ namespace Tailgrab.Clients.Ollama
                     CheckLines(evaluated, "Harrassment & Bullying") ||
                     CheckLines(evaluated, "Self Harm"))
             {
+
+                string? soundSetting = ConfigStore.LoadSecret(Common.Common.Registry_Alert_Profile) ?? "Hand";
+                SoundManager.PlaySound(soundSetting);
+
                 return true;
             }
 

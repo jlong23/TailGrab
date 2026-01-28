@@ -445,6 +445,24 @@ public class FileTailer
         groupBoxStyle.Setters.Add(new Setter(System.Windows.Window.ForegroundProperty, lightText));
         app.Resources[typeof(System.Windows.Controls.GroupBox)] = groupBoxStyle;
 
+        var comboBoxStyle = new Style(typeof(System.Windows.Controls.ComboBox));
+        comboBoxStyle.Setters.Add(new Setter(System.Windows.Controls.Control.BackgroundProperty, darkControl));
+        comboBoxStyle.Setters.Add(new Setter(System.Windows.Controls.Control.ForegroundProperty, lightText));
+        app.Resources[typeof(System.Windows.Controls.ComboBox)] = comboBoxStyle;
+
+        // Ensure ComboBox items and selected text use the dark theme when the control is not focused.
+        var comboBoxItemStyle = new Style(typeof(System.Windows.Controls.ComboBoxItem));
+        comboBoxItemStyle.Setters.Add(new Setter(System.Windows.Controls.Control.BackgroundProperty, darkWindow));
+        comboBoxItemStyle.Setters.Add(new Setter(System.Windows.Controls.Control.ForegroundProperty, lightText));
+        comboBoxItemStyle.Setters.Add(new Setter(System.Windows.Controls.Control.BorderBrushProperty, System.Windows.Media.Brushes.Transparent));
+
+        var comboSelectedTrigger = new Trigger { Property = System.Windows.Controls.ComboBoxItem.IsSelectedProperty, Value = true };
+        comboSelectedTrigger.Setters.Add(new Setter(System.Windows.Controls.Control.BackgroundProperty, darkWindow));
+        comboSelectedTrigger.Setters.Add(new Setter(System.Windows.Controls.Control.ForegroundProperty, lightText));
+
+        comboBoxItemStyle.Triggers.Add(comboSelectedTrigger);
+        app.Resources[typeof(System.Windows.Controls.ComboBoxItem)] = comboBoxItemStyle;
+
         var windowStyle = new Style(typeof(System.Windows.Window));
         windowStyle.Setters.Add(new Setter(System.Windows.Window.BackgroundProperty, darkWindow));
         windowStyle.Setters.Add(new Setter(System.Windows.Window.ForegroundProperty, lightText));

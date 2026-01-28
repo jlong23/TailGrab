@@ -3,6 +3,8 @@ using Microsoft.EntityFrameworkCore;
 using NLog;
 using System.Media;
 using Tailgrab.Clients.Ollama;
+using Tailgrab.Common;
+using Tailgrab.Config;
 using Tailgrab.Models;
 using VRChat.API.Model;
 
@@ -257,7 +259,8 @@ namespace Tailgrab.AvatarManagement
 
             if (bannedAvatars.Count > 0)
             {
-                SystemSounds.Hand.Play();
+                string? soundSetting = ConfigStore.LoadSecret(Common.Common.Registry_Alert_Avatar) ?? "Hand";
+                SoundManager.PlaySound(soundSetting);
                 return true;
             }
 
