@@ -739,7 +739,8 @@ namespace Tailgrab.PlayerManagement
                     }
 
                     // Filter the view to the fetched avatar
-                    ApplyAvatarDbFilter(AvatarDbView, avatar.Id);
+                    ApplyAvatarDbFilter(AvatarDbView, avatar.Name);
+                    AvatarIdBox.Text = string.Empty;
                 }
                 else
                 {
@@ -870,7 +871,8 @@ namespace Tailgrab.PlayerManagement
                     }
 
                     // Filter the view to the fetched Group
-                    ApplyGroupDbFilter(GroupDbView, group.Id);
+                    ApplyGroupDbFilter(GroupDbView, group.Name);
+                    GroupIdBox.Text = string.Empty;
                 }
                 else
                 {
