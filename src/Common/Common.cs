@@ -16,7 +16,7 @@
         public const string Registry_Ollama_API_Endpoint = "OLLAMA_API_ENDPOINT";
         public const string Registry_Ollama_API_Prompt = "OLLAMA_API_PROMPT";
         public const string Registry_Ollama_API_Model = "OLLAMA_API_Model";
-        public const string Default_Ollama_API_Prompt = "From the following block of text, classify the contents into a single class;\n'OK', 'Explicit Sexual', 'Harrassment & Bullying', 'Self Harm' or 'Other'.\nWhen replying, give a single line for the Classification and then a new line for the resoning: \n";
+        public const string Default_Ollama_API_Prompt = "From the following block of text, classify the contents into a single class from the following classes; 'OK', 'Explicit Sexual', 'Harassment & Bullying', 'Self Harm'. If there is not enough information to determine the class, use a default of OK. When replying, return a single line for the Classification and a carriage return, then place the reasoning on subsequent lines: \n";
         public const string Default_Ollama_API_Endpoint = "https://ollama.com";
         public const string Default_Ollama_API_Model = "gemma3:27b";
 

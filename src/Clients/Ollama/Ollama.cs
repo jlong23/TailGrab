@@ -134,7 +134,7 @@ namespace Tailgrab.Clients.Ollama
                                     }
                                     else
                                     {
-                                        GetEvaluationFromStore(serviceRegistry, evaluated, item);
+                                        GetEvaluationFromStore(serviceRegistry, evaluated, item.UserId);
                                     }
                                 }
                             }
@@ -205,13 +205,13 @@ namespace Tailgrab.Clients.Ollama
             }
         }
 
-        private async static void GetEvaluationFromCloud(OllamaApiClient ollamaApi, ServiceRegistry serviceRegistry, QueuedProcess item)
+        private async static void GetEvaluationFromCloud(OllamaApiClient ollamaApi, ServiceRegistry serviceRegistry, QueuedProcess item )
         {
             string? ollamaPrompt = ConfigStore.LoadSecret(Tailgrab.Common.Common.Registry_Ollama_API_Prompt);
             GenerateRequest request = new GenerateRequest
             {
                 Model = ollamaApi.SelectedModel,
-                Prompt = ollamaPrompt ?? Tailgrab.Common.Common.Default_Ollama_API_Prompt + item.UserBio ?? string.Empty,
+                Prompt = string.Concat( ollamaPrompt ?? Tailgrab.Common.Common.Default_Ollama_API_Prompt, item.UserBio ?? string.Empty ),
                 Stream = false
             };
 
@@ -251,12 +251,12 @@ namespace Tailgrab.Clients.Ollama
             }
         }
 
-        private static void GetEvaluationFromStore(ServiceRegistry serviceRegistry, ProfileEvaluation evaluated, QueuedProcess item)
+        private static void GetEvaluationFromStore(ServiceRegistry serviceRegistry, ProfileEvaluation evaluated, string? userId)
         {
-            if (item.UserId != null)
+            if (userId != null)
             {
 
-                Player? player = serviceRegistry.GetPlayerManager().GetPlayerByUserId(item.UserId ?? string.Empty);
+                Player? player = serviceRegistry.GetPlayerManager().GetPlayerByUserId(userId ?? string.Empty);
                 if (player != null)
                 {
                     player.AIEval = System.Text.Encoding.UTF8.GetString(evaluated.Evaluation);
@@ -266,11 +266,11 @@ namespace Tailgrab.Clients.Ollama
                         player.IsProfileWatch = true;
                     }
                     serviceRegistry.GetPlayerManager().OnPlayerChanged(PlayerChangedEventArgs.ChangeType.Updated, player);
-                    logger.Debug($"User profile already processed for userId: {item.UserId}");
+                    logger.Debug($"User profile already processed for userId: {userId}");
                 }
                 else
                 {
-                    logger.Debug($"User profile lookup fails for userId: {item.UserId}");
+                    logger.Debug($"User profile lookup fails for userId: {userId}");
                 }
 
             }
