@@ -442,6 +442,12 @@ namespace Tailgrab.PlayerManagement
             {
                 p.IsAvatarWatch = watchedAvatar;
                 p.AvatarName = avatarName;
+
+                if (watchedAvatar)
+                {
+                    p.PenActivity = $"AV: {avatarName}";
+                }
+
                 OnPlayerChanged(PlayerChangedEventArgs.ChangeType.Updated, p);
             }
 

@@ -159,6 +159,7 @@ namespace Tailgrab.Clients.Ollama
         {
             logger.Debug($"Processing User Group subscription for userId: {item.UserId}");
             bool isSuspectGroup = false;
+            string? watchedGroups = string.Empty;
             foreach (LimitedUserGroups group in userGroups)
             {
                 GroupInfo? groupInfo = dBContext.GroupInfos.Find(group.GroupId);
@@ -183,6 +184,7 @@ namespace Tailgrab.Clients.Ollama
 
                     if (groupInfo.IsBos)
                     {
+                        watchedGroups = string.Concat( watchedGroups,  " " + groupInfo.GroupName );
                         isSuspectGroup = true;
                     }
                 }
@@ -194,6 +196,7 @@ namespace Tailgrab.Clients.Ollama
                 if (player != null)
                 {
                     player.IsGroupWatch = true;
+                    player.PenActivity = watchedGroups;
                     serviceRegistry.GetPlayerManager().OnPlayerChanged(PlayerChangedEventArgs.ChangeType.Updated, player);
                 }
 

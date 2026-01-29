@@ -6,6 +6,7 @@ using Tailgrab.Clients.Ollama;
 using Tailgrab.Common;
 using Tailgrab.Config;
 using Tailgrab.Models;
+using Tailgrab.PlayerManagement;
 using VRChat.API.Model;
 
 namespace Tailgrab.AvatarManagement
@@ -261,6 +262,7 @@ namespace Tailgrab.AvatarManagement
             {
                 string? soundSetting = ConfigStore.LoadSecret(Common.Common.Registry_Alert_Avatar) ?? "Hand";
                 SoundManager.PlaySound(soundSetting);
+
                 return true;
             }
 
