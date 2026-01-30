@@ -1,7 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Win32;
 using NLog;
-using Polly;
 using System.IO;
 using System.Reflection;
 using System.Text;
@@ -11,7 +10,6 @@ using System.Windows.Media;
 using Tailgrab;
 using Tailgrab.Configuration;
 using Tailgrab.LineHandler;
-using Tailgrab.Models;
 using Tailgrab.PlayerManagement;
 
 public class FileTailer
@@ -221,6 +219,7 @@ public class FileTailer
         // -clear           : remove application registry settings and exit
         string? explicitPath = null;
         bool clearRegistry = false;
+        bool upgrade = false;
         for (int i = 0; i < args.Length; i++)
         {
             var a = args[i];
@@ -232,6 +231,10 @@ public class FileTailer
             else if (string.Equals(a, "-clear", StringComparison.OrdinalIgnoreCase))
             {
                 clearRegistry = true;
+            }
+            else if (string.Equals(a, "-upgrade", StringComparison.OrdinalIgnoreCase))
+            {
+                upgrade = true;
             }
         }
 
@@ -248,12 +251,23 @@ public class FileTailer
         _serviceRegistry = new ServiceRegistry();
         _serviceRegistry.StartAllServices();
 
+        if( upgrade )
+        {
+            UpgradeApplication(_serviceRegistry);
+        }
+
         string filePath = GetLogsPath(args, explicitPath);
         if (!Directory.Exists(filePath))
         {
             logger.Info($"Missing VRChat log directory at '{filePath}'");
             return;
         }
+
+        AvatarBosGistListManager avatarGistMgr = new AvatarBosGistListManager(_serviceRegistry);
+        _ = Task.Run(() => avatarGistMgr.ProcessAvatarGistList());
+
+        GroupBosGistListManager groupGistMgr = new GroupBosGistListManager(_serviceRegistry);
+        _ = Task.Run(() => groupGistMgr.ProcessGroupGistList());
 
         ConfigurationManager configurationManager = new ConfigurationManager(_serviceRegistry);
         configurationManager.LoadLineHandlersFromConfig(HandlerList);
@@ -270,6 +284,14 @@ public class FileTailer
         BuildAppWindow(_serviceRegistry);
 
         // When the window closes, allow Main to complete. The watcher task will be abandoned; if desired add cancellation.
+    }
+
+    private static void UpgradeApplication(ServiceRegistry serviceRegistry)
+    {
+        logger.Warn($"Starting application upgrade process...");
+        serviceRegistry.GetDBContext().Database.Migrate();
+
+        logger.Warn($"Completed application upgrade process...");
     }
 
     private static string GetLogsPath(string[] args, string? explicitPath)

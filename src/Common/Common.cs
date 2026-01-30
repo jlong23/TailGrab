@@ -25,5 +25,12 @@
         public const string Registry_Alert_Group = "ALERT_GROUP_SOUND";
         public const string Registry_Alert_Profile = "ALERT_PROFILE_SOUND";
 
+        // Gist related registry keys
+        public const string Registry_Group_Checksum = "GIST_GROUP_LIST_CHECKSUM";
+        public const string Registry_Group_Gist = "GIST_GROUP_LIST_URL";
+
+        // Avatar Gist related registry keys
+        public const string Registry_Avatar_Checksum = "GIST_AVATAR_LIST_CHECKSUM";
+        public const string Registry_Avatar_Gist = "GIST_AVATAR_LIST_URL";
     }
 }

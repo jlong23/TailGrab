@@ -1,3 +1,4 @@
+using Microsoft.Win32;
 using NLog;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
@@ -88,6 +89,8 @@ namespace Tailgrab.PlayerManagement
             var ollamaEndpoint = ConfigStore.LoadSecret(Tailgrab.Common.Common.Registry_Ollama_API_Endpoint) ?? Tailgrab.Common.Common.Default_Ollama_API_Endpoint;
             var ollamaPrompt = ConfigStore.LoadSecret(Tailgrab.Common.Common.Registry_Ollama_API_Prompt) ?? Tailgrab.Common.Common.Default_Ollama_API_Prompt;
             var ollamaModel = ConfigStore.LoadSecret(Tailgrab.Common.Common.Registry_Ollama_API_Model) ?? Tailgrab.Common.Common.Default_Ollama_API_Model;
+            var avatarGistUri = GetStoredUri(Tailgrab.Common.Common.Registry_Avatar_Gist);
+            var groupGistUri = GetStoredUri(Tailgrab.Common.Common.Registry_Group_Gist);
 
             // Populate UI boxes but do not reveal secrets
             if (!string.IsNullOrEmpty(vrUser)) VrUserBox.Text = vrUser;
@@ -97,6 +100,9 @@ namespace Tailgrab.PlayerManagement
             if (!string.IsNullOrEmpty(ollamaEndpoint)) VrOllamaEndpointBox.Text = ollamaEndpoint;
             if (!string.IsNullOrEmpty(ollamaModel)) VrOllamaModelBox.Text = ollamaModel;
             if (!string.IsNullOrEmpty(ollamaPrompt)) VrOllamaPromptBox.Text = ollamaPrompt;
+
+            if (!string.IsNullOrEmpty(avatarGistUri)) avatarGistUrl.Text = avatarGistUri;
+            if (!string.IsNullOrEmpty(groupGistUri)) groupGistUrl.Text = groupGistUri;
 
             // Populate sound combo boxes
             try
@@ -136,6 +142,51 @@ namespace Tailgrab.PlayerManagement
 
             this.Closed += (s, e) => Dispose();
         }
+
+        private string? GetStoredUri(string keyName)
+        {
+            try
+            {
+                using (RegistryKey? key = Registry.CurrentUser.OpenSubKey(Common.Common.ConfigRegistryPath))
+                {
+                    if (key == null)
+                    {
+                        logger.Debug("Registry key does not exist");
+                        return null;
+                    }
+
+                    string? value = key.GetValue(keyName) as string;
+                    if (string.IsNullOrEmpty(value))
+                    {
+                        logger.Debug("No Value stored in registry.");
+                        return null;
+                    }
+
+                    return value;
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex, "Failed to read value from registry.");
+                return null;
+            }
+        }
+
+        private void PutStoredUri(string keyName, string keyValue)
+        {
+            try
+            {
+                using (RegistryKey key = Registry.CurrentUser.CreateSubKey(Common.Common.ConfigRegistryPath))
+                {
+                    key.SetValue(keyName, keyValue, RegistryValueKind.String);
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex, "Failed to save value to registry.");
+            }
+        }
+
 
         public class PrintInfoViewModel : INotifyPropertyChanged
         {
@@ -251,6 +302,9 @@ namespace Tailgrab.PlayerManagement
                 ConfigStore.SaveSecret(Tailgrab.Common.Common.Registry_Ollama_API_Endpoint, VrOllamaEndpointBox.Text ?? Tailgrab.Common.Common.Default_Ollama_API_Endpoint);
                 ConfigStore.SaveSecret(Tailgrab.Common.Common.Registry_Ollama_API_Prompt, VrOllamaPromptBox.Text ?? Tailgrab.Common.Common.Default_Ollama_API_Prompt);
                 ConfigStore.SaveSecret(Tailgrab.Common.Common.Registry_Ollama_API_Model, VrOllamaModelBox.Text ?? Tailgrab.Common.Common.Default_Ollama_API_Model);
+
+                PutStoredUri(Common.Common.Registry_Avatar_Gist, avatarGistUrl.Text);
+                PutStoredUri(Common.Common.Registry_Group_Gist, groupGistUrl.Text);
 
                 // Save alert sound selections (or delete if none)
                 if (AvatarAlertCombo.SelectedItem is string avatarSound && !string.IsNullOrEmpty(avatarSound))
@@ -513,50 +567,17 @@ namespace Tailgrab.PlayerManagement
             string? id = GroupIdBox.Text?.Trim();
             if (string.IsNullOrEmpty(id)) return;
 
-            try
-            {
-                VRChatClient vrcClient = _serviceRegistry.GetVRChatAPIClient();
-                VRChat.API.Model.Group? group = vrcClient.getGroupById(id);
-                if (group != null)
-                {
-                    TailgrabDBContext dbContext = _serviceRegistry.GetDBContext();
-                    GroupInfo? existing = dbContext.GroupInfos.Find(group.Id);
-                    if (existing == null)
-                    {
-                        GroupInfo newEntity = new GroupInfo
-                        {
-                            GroupId = group.Id,
-                            GroupName = group.Name ?? string.Empty,
-                            CreatedAt = group.CreatedAt,
-                            UpdatedAt = DateTime.UtcNow,
-                            IsBos = false
-                        };
-                        
-                        dbContext.GroupInfos.Add(newEntity);
-                        dbContext.SaveChanges();
-                    }
-                    else
-                    {
-                        existing.GroupId = group.Id;
-                        existing.GroupName = group.Name ?? string.Empty;
-                        existing.CreatedAt = group.CreatedAt;
-                        existing.UpdatedAt = DateTime.UtcNow;
-                        dbContext.GroupInfos.Update(existing);
-                        dbContext.SaveChanges();
-                    }
+            GroupInfo? existing = _serviceRegistry.GetPlayerManager().AddUpdateGroupFromVRC(id);
 
-                    // Filter the view to the fetched Group
-                    ApplyGroupDbFilter(GroupDbView, group.Name ?? string.Empty);
-                    GroupIdBox.Text = string.Empty;
-                }
-                else
-                {
-                    System.Windows.MessageBox.Show($"Group {id} not found via VRChat API.", "Fetch Group", MessageBoxButton.OK, MessageBoxImage.Information);
-                }
-            }
-            catch (Exception ex)
+            if (existing == null)
             {
-                System.Windows.MessageBox.Show($"Failed to fetch Group: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                System.Windows.MessageBox.Show($"Group {id} not found via VRChat API.", "Fetch Group", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            else
+            {
+                // Filter the view to the fetched Group
+                ApplyGroupDbFilter(GroupDbView, existing.GroupName ?? string.Empty);
+                GroupIdBox.Text = string.Empty;
             }
         }
         #endregion

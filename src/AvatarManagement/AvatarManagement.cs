@@ -349,7 +349,7 @@ namespace Tailgrab.AvatarManagement
             }
         }
 
-        private static Avatar? FetchUpdateAvatarData(ServiceRegistry serviceRegistry, TailgrabDBContext dBContext, string AvatarId, AvatarInfo? dbAvatarInfo)
+        public static Avatar? FetchUpdateAvatarData(ServiceRegistry serviceRegistry, TailgrabDBContext dBContext, string AvatarId, AvatarInfo? dbAvatarInfo)
         {
             Avatar? avatarData = null;
             try

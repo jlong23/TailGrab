@@ -1,6 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using NLog;
 using System.Text;
+using System.Windows;
+using Tailgrab.Clients.VRChat;
 using Tailgrab.Common;
 using Tailgrab.LineHandler;
 using Tailgrab.Models;
@@ -506,6 +508,55 @@ namespace Tailgrab.PlayerManagement
                     AddPlayerEventByUserId(printInfo.OwnerId, PlayerEvent.EventType.Print, $"Dropped Print {printId}");
                 }
             }
+        }
+
+        public GroupInfo? AddUpdateGroupFromVRC(string? groupId)
+        {
+            if (string.IsNullOrEmpty(groupId))
+                return null;
+
+            try
+            {
+                VRChatClient vrcClient = serviceRegistry.GetVRChatAPIClient();
+                VRChat.API.Model.Group? group = vrcClient.getGroupById(groupId);
+                if (group != null)
+                {
+                    TailgrabDBContext dbContext = serviceRegistry.GetDBContext();
+                    GroupInfo? existing = dbContext.GroupInfos.Find(group.Id);
+                    if (existing == null)
+                    {
+                        GroupInfo newEntity = new GroupInfo
+                        {
+                            GroupId = group.Id,
+                            GroupName = group.Name ?? string.Empty,
+                            CreatedAt = group.CreatedAt,
+                            UpdatedAt = DateTime.UtcNow,
+                            IsBos = false
+                        };
+
+                        dbContext.GroupInfos.Add(newEntity);
+                        dbContext.SaveChanges();
+                        return newEntity;
+                    }
+                    else
+                    {
+                        existing.GroupId = group.Id;
+                        existing.GroupName = group.Name ?? string.Empty;
+                        existing.CreatedAt = group.CreatedAt;
+                        existing.UpdatedAt = DateTime.UtcNow;
+                        dbContext.GroupInfos.Update(existing);
+                        dbContext.SaveChanges();
+                        return existing;
+                    }
+
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.Warn($"Failed to fetch Group: {ex.Message}");
+            }
+
+            return null;
         }
     }
 }

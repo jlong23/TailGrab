@@ -609,6 +609,7 @@
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
                                 <RowDefinition Height="*" />
                             </Grid.RowDefinitions>
 
@@ -635,13 +636,33 @@
                                 </Grid>
                             </GroupBox>
 
-                            <GroupBox Header="Ollama Cloud Credentials" Grid.Row="1" Margin="0,0,0,6">
+                            <GroupBox Header="Ban On Sight Management" Grid.Row="1" Margin="0,0,0,6">
                                 <Grid Margin="6">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="Auto" />
                                         <ColumnDefinition Width="*" />
                                     </Grid.ColumnDefinitions>
                                     <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
+
+                                    <Label Grid.Row="0" Grid.Column="0" Content="Avatar GIST Url:" VerticalAlignment="Center"/>
+                                    <TextBox Grid.Row="0" Grid.Column="1" Name="avatarGistUrl" Width="300" Margin="6,2" />
+
+                                    <Label Grid.Row="1" Grid.Column="0" Content="Group GIST Url:" VerticalAlignment="Center"/>
+                                    <TextBox Grid.Row="1" Grid.Column="1" Name="groupGistUrl" Width="300" Margin="6,2" />
+                                </Grid>
+                            </GroupBox>
+
+                            <GroupBox Header="Ollama Cloud Credentials" Grid.Row="2" Margin="0,0,0,6">
+                                <Grid Margin="6">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
                                         <RowDefinition Height="Auto" />
                                         <RowDefinition Height="Auto" />
                                         <RowDefinition Height="Auto" />
@@ -664,7 +685,7 @@
                                 </Grid>
                             </GroupBox>
 
-                            <GroupBox Header="Alert Sounds" Grid.Row="2" Margin="0,0,0,6">
+                            <GroupBox Header="Alert Sounds" Grid.Row="3" Margin="0,0,0,6">
                                 <Grid Margin="6">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="125*" />
@@ -731,7 +752,7 @@
                                 </Grid>
                             </GroupBox>
 
-                            <StackPanel Orientation="Horizontal" Grid.Row="3" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,6,0,0">
+                            <StackPanel Orientation="Horizontal" Grid.Row="4" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,6,0,0">
                                 <Button Content="Save Config" Click="SaveConfig_Click" Width="120" />
                             </StackPanel>
                         </Grid>
