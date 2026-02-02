@@ -3,7 +3,6 @@ using Microsoft.EntityFrameworkCore;
 using NLog;
 using OllamaSharp;
 using OllamaSharp.Models;
-using System.Media;
 using System.Net.Http;
 using System.Text.RegularExpressions;
 using Tailgrab.Common;
@@ -43,7 +42,6 @@ namespace Tailgrab.Clients.Ollama
     {
         public static Logger logger = LogManager.GetCurrentClassLogger();
         private ConcurrentPriorityQueue<IHavePriority<int>, int> priorityQueue = new ConcurrentPriorityQueue<IHavePriority<int>, int>();
-        private Dictionary<string, string> processedBios = new Dictionary<string, string>();
         private ServiceRegistry _serviceRegistry;
 
         public OllamaClient(ServiceRegistry registry)
@@ -55,7 +53,12 @@ namespace Tailgrab.Clients.Ollama
 
             _serviceRegistry = registry;
 
-            _ = Task.Run(() => ProfileCheckTask(priorityQueue, processedBios, registry));
+            _ = Task.Run(() => ProfileCheckTask(priorityQueue, registry));
+        }
+
+        public int GetQueueSize()
+        {
+            return priorityQueue.Count;
         }
 
         public void CheckUserProfile(string userId)
@@ -78,7 +81,7 @@ namespace Tailgrab.Clients.Ollama
 
             }
         }
-        public static async Task ProfileCheckTask(ConcurrentPriorityQueue<IHavePriority<int>, int> priorityQueue, Dictionary<string, string> processData, ServiceRegistry serviceRegistry)
+        public static async Task ProfileCheckTask(ConcurrentPriorityQueue<IHavePriority<int>, int> priorityQueue, ServiceRegistry serviceRegistry)
         {
             string? ollamaCloudKey = ConfigStore.LoadSecret(Tailgrab.Common.Common.Registry_Ollama_API_Key);
             OllamaApiClient? ollamaApi = null;
@@ -105,7 +108,7 @@ namespace Tailgrab.Clients.Ollama
                 {
                     var result = priorityQueue.Dequeue();
                     if (result.IsSuccess && result.Value is QueuedProcess item && item.UserId != null)
-                    {
+                    {                        
                         try
                         {
                             TailgrabDBContext dBContext = serviceRegistry.GetDBContext();
@@ -114,7 +117,7 @@ namespace Tailgrab.Clients.Ollama
                             string fullProfile = $"DisplayName: {profile.DisplayName}\nStatusDesc: {profile.StatusDescription}\nPronowns: {profile.Pronouns}\nProfileBio: {profile.Bio}\n";
                             item.UserBio = fullProfile;
 
-                            GetUserGroupInformation(serviceRegistry, dBContext, userGroups, item);
+                            await GetUserGroupInformation(serviceRegistry, dBContext, userGroups, item);
 
                             // Wait for a short period before checking the queue again
                             await Task.Delay(1000);
@@ -138,11 +141,14 @@ namespace Tailgrab.Clients.Ollama
                                     }
                                 }
                             }
+
+                            serviceRegistry.GetPlayerManager().OnPlayerChanged(PlayerChangedEventArgs.ChangeType.Updated, profile.DisplayName);
                         }
                         catch (Exception ex)
                         {
                             logger.Error(ex, $"Error fetching user profile for userId: {item.UserId}");
                         }
+
                     }
                     else
                     {
@@ -155,7 +161,7 @@ namespace Tailgrab.Clients.Ollama
             }
         }
 
-        private async static void GetUserGroupInformation(ServiceRegistry serviceRegistry, TailgrabDBContext dBContext, List<LimitedUserGroups> userGroups, QueuedProcess item)
+        private async static Task<bool> GetUserGroupInformation(ServiceRegistry serviceRegistry, TailgrabDBContext dBContext, List<LimitedUserGroups> userGroups, QueuedProcess item)
         {
             logger.Debug($"Processing User Group subscription for userId: {item.UserId}");
             bool isSuspectGroup = false;
@@ -198,12 +204,13 @@ namespace Tailgrab.Clients.Ollama
                     player.IsGroupWatch = true;
                     player.PenActivity = watchedGroups;
                     serviceRegistry.GetPlayerManager().AddPlayerEventByUserId(item.UserId ?? string.Empty, PlayerEvent.EventType.GroupWatch, $"User is member of watched group(s): {watchedGroups}");
-                    serviceRegistry.GetPlayerManager().OnPlayerChanged(PlayerChangedEventArgs.ChangeType.Updated, player);
                 }
 
                 string? soundSetting = ConfigStore.LoadSecret(Common.Common.Registry_Alert_Group) ?? "Hand";
                 SoundManager.PlaySound(soundSetting);
             }
+
+            return isSuspectGroup;
         }
 
         private async static void GetEvaluationFromCloud(OllamaApiClient ollamaApi, ServiceRegistry serviceRegistry, QueuedProcess item )
@@ -246,7 +253,6 @@ namespace Tailgrab.Clients.Ollama
                             player.PenActivity = profileWatch;
                             serviceRegistry.GetPlayerManager().AddPlayerEventByUserId(item.UserId ?? string.Empty, PlayerEvent.EventType.ProfileWatch, $"User profile was flagged by the AI : {profileWatch}");
                             serviceRegistry.GetPlayerManager().OnPlayerChanged(PlayerChangedEventArgs.ChangeType.Updated, player);
-
                         }
                         serviceRegistry.GetPlayerManager().OnPlayerChanged(PlayerChangedEventArgs.ChangeType.Updated, player);
                     }

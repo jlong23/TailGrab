@@ -20,6 +20,11 @@ namespace Tailgrab.AvatarManagement
         private ConcurrentPriorityQueue<IHavePriority<int>, int> priorityQueue = new ConcurrentPriorityQueue<IHavePriority<int>, int>();
 
 
+        public int GetQueueCount()
+        {
+            return priorityQueue.Count;
+        }
+
         public AvatarManagementService(ServiceRegistry serviceRegistry)
         {
             _serviceRegistry = serviceRegistry;

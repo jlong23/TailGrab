@@ -18,6 +18,7 @@ namespace Tailgrab.PlayerManagement
     public partial class TailgrabPannel : Window, IDisposable, INotifyPropertyChanged
     {
         private readonly DispatcherTimer fallbackTimer;
+        private readonly DispatcherTimer statusBarTimer;
 
         public ObservableCollection<PlayerViewModel> ActivePlayers { get; } = new ObservableCollection<PlayerViewModel>();
         public ObservableCollection<PlayerViewModel> PastPlayers { get; } = new ObservableCollection<PlayerViewModel>();
@@ -45,6 +46,34 @@ namespace Tailgrab.PlayerManagement
                 {
                     _selectedActive = value;
                     OnPropertyChanged(nameof(SelectedActive));
+                }
+            }
+        }
+
+        private int _avatarQueueLength;
+        public int AvatarQueueLength
+        {
+            get => _avatarQueueLength;
+            set
+            {
+                if (_avatarQueueLength != value)
+                {
+                    _avatarQueueLength = value;
+                    OnPropertyChanged(nameof(AvatarQueueLength));
+                }
+            }
+        }
+
+        private int _ollamaQueueLength;
+        public int OllamaQueueLength
+        {
+            get => _ollamaQueueLength;
+            set
+            {
+                if (_ollamaQueueLength != value)
+                {
+                    _ollamaQueueLength = value;
+                    OnPropertyChanged(nameof(OllamaQueueLength));
                 }
             }
         }
@@ -153,7 +182,31 @@ namespace Tailgrab.PlayerManagement
             fallbackTimer.Tick += FallbackTimer_Tick;
             fallbackTimer.Start();
 
+            // Status bar timer to update queue lengths
+            statusBarTimer = new DispatcherTimer(DispatcherPriority.Background)
+            {
+                Interval = TimeSpan.FromSeconds(1)
+            };
+            statusBarTimer.Tick += StatusBarTimer_Tick;
+            statusBarTimer.Start();
+
             this.Closed += (s, e) => Dispose();
+        }
+
+        private void StatusBarTimer_Tick(object? sender, EventArgs e)
+        {
+            try
+            {
+                var avatarManager = _serviceRegistry.GetAvatarManager();
+                var ollamaClient = _serviceRegistry.GetOllamaAPIClient();
+
+                AvatarQueueLength = avatarManager?.GetQueueCount() ?? 0;
+                OllamaQueueLength = ollamaClient?.GetQueueSize() ?? 0;
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex, "Error updating status bar queue lengths");
+            }
         }
 
         private string? GetStoredUri(string keyName)
@@ -1047,6 +1100,10 @@ namespace Tailgrab.PlayerManagement
         {
             fallbackTimer.Stop();
             fallbackTimer.Tick -= FallbackTimer_Tick;
+            
+            statusBarTimer.Stop();
+            statusBarTimer.Tick -= StatusBarTimer_Tick;
+            
             PlayerManager.PlayerChanged -= PlayerManager_PlayerChanged;
         }
 

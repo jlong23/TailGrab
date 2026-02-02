@@ -27,7 +27,7 @@ public class EmojiHandler : AbstractLineHandler
             _serviceRegistry.GetPlayerManager().AddInventorySpawn(fileURL);
             if (LogOutput)
             {
-                logger.Info($"{COLOR_PREFIX}Print : {fileURL}{COLOR_RESET.GetAnsiEscape()}");
+                logger.Info($"{COLOR_PREFIX}Emoji/Inventory : {fileURL}{COLOR_RESET.GetAnsiEscape()}");
             }
             ExecuteActions();
             return true;

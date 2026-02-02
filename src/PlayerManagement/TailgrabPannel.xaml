@@ -3,14 +3,20 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:local="clr-namespace:Tailgrab.PlayerManagement"
         Title="Tailgrab Player Panel"
-        Width="1080" Height="720"
+        Width="1080" Height="750"
         FontFamily="Segoe UI"
         Language="en-US"
         WindowStartupLocation="CenterOwner"
         UseLayoutRounding="True"
         TextOptions.TextFormattingMode="Display">
-    <Grid Margin="8">
-        <TabControl>
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        
+        <Grid Margin="8" Grid.Row="0">
+            <TabControl>
             <TabItem Header="Active Players">
                 <Grid>
                     <Grid.ColumnDefinitions>
@@ -777,5 +783,23 @@
             </TabItem>
 
         </TabControl>
+        </Grid>
+        
+        <!-- Status Bar -->
+        <StatusBar Grid.Row="1" Background="#FF2D2D30" Foreground="#FFE6E6E6">
+            <StatusBarItem>
+                <TextBlock>
+                    <Run Text="Avatar Queue: "/>
+                    <Run Text="{Binding AvatarQueueLength, Mode=OneWay}" FontWeight="Bold"/>
+                </TextBlock>
+            </StatusBarItem>
+            <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" />
+            <StatusBarItem>
+                <TextBlock>
+                    <Run Text="Ollama Queue: "/>
+                    <Run Text="{Binding OllamaQueueLength, Mode=OneWay}" FontWeight="Bold"/>
+                </TextBlock>
+            </StatusBarItem>
+        </StatusBar>
     </Grid>
 </Window>

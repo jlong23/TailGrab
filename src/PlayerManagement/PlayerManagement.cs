@@ -230,6 +230,21 @@ namespace Tailgrab.PlayerManagement
             }
         }
 
+        public void OnPlayerChanged(PlayerChangedEventArgs.ChangeType changeType, string displayName)
+        {
+            try
+            {
+                if( playersByDisplayName.TryGetValue(displayName, out Player? player))
+                {
+                    PlayerChanged?.Invoke(null, new PlayerChangedEventArgs(changeType, player));
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex, "Error raising PlayerChanged event");
+            }
+        }
+
         public void UpdateCurrentSession(string worldId, string instanceId)
         {
             CurrentSession = new SessionInfo(worldId, instanceId);
@@ -359,7 +374,6 @@ namespace Tailgrab.PlayerManagement
             {
                 player.NetworkId = networkId;
                 playersByNetworkId[networkId] = player;
-                OnPlayerChanged(PlayerChangedEventArgs.ChangeType.Updated, player);
             }
 
             return player;
@@ -414,7 +428,6 @@ namespace Tailgrab.PlayerManagement
             {
                 PlayerEvent newEvent = new PlayerEvent(eventType, eventDescription);
                 player.AddEvent(newEvent);
-                OnPlayerChanged(PlayerChangedEventArgs.ChangeType.Updated, player);
                 return player;
             }
 
@@ -427,7 +440,6 @@ namespace Tailgrab.PlayerManagement
             {
                 PlayerEvent newEvent = new PlayerEvent(eventType, eventDescription);
                 player.AddEvent(newEvent);
-                OnPlayerChanged(PlayerChangedEventArgs.ChangeType.Updated, player);
                 return player;
             }
 
@@ -447,6 +459,7 @@ namespace Tailgrab.PlayerManagement
             {
                 p.IsAvatarWatch = watchedAvatar;
                 p.AvatarName = avatarName;
+                AddPlayerEventByDisplayName(displayName ?? string.Empty, PlayerEvent.EventType.AvatarWatch, $"User switched to Avatar : {avatarName}");
 
                 if (watchedAvatar)
                 {
