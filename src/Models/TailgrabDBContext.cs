@@ -38,6 +38,8 @@ public partial class TailgrabDBContext : DbContext
 
     public virtual DbSet<ProfileEvaluation> ProfileEvaluations { get; set; }
 
+    public virtual DbSet<ImageEvaluation> ImageEvaluations { get; set; }
+
     public virtual DbSet<UserInfo> UserInfos { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -80,6 +82,15 @@ public partial class TailgrabDBContext : DbContext
             entity.Property(e => e.CreatedAt).IsRequired();
             entity.Property(e => e.ElapsedMinutes).HasColumnName("elapsedHours");
             entity.Property(e => e.IsBos).HasColumnName("IsBOS");
+        });
+
+        modelBuilder.Entity<ImageEvaluation>(entity =>
+        {
+            entity.HasKey(e => e.InventoryId);
+
+            entity.ToTable("ImageEvaluation");
+
+            entity.Property(e => e.Md5checksum).HasColumnName("MD5Checksum");
         });
 
         OnModelCreatingPartial(modelBuilder);

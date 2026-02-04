@@ -251,7 +251,7 @@ public class FileTailer
         _serviceRegistry = new ServiceRegistry();
         _serviceRegistry.StartAllServices();
 
-        if( upgrade )
+        if ( upgrade )
         {
             UpgradeApplication(_serviceRegistry);
         }

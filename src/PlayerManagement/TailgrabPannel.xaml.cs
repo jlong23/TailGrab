@@ -21,8 +21,8 @@ namespace Tailgrab.PlayerManagement
 
         public ObservableCollection<PlayerViewModel> ActivePlayers { get; } = new ObservableCollection<PlayerViewModel>();
         public ObservableCollection<PlayerViewModel> PastPlayers { get; } = new ObservableCollection<PlayerViewModel>();
-        public ObservableCollection<PlayerViewModel> StickerPlayers { get; } = new ObservableCollection<PlayerViewModel>();
         public ObservableCollection<PlayerViewModel> PrintPlayers { get; } = new ObservableCollection<PlayerViewModel>();
+        public ObservableCollection<PlayerViewModel> EmojiPlayers { get; } = new ObservableCollection<PlayerViewModel>();
         public AvatarVirtualizingCollection AvatarDbItems { get; private set; }
         public GroupVirtualizingCollection GroupDbItems { get; private set; }
         public UserVirtualizingCollection UserDbItems { get; private set; }
@@ -32,8 +32,9 @@ namespace Tailgrab.PlayerManagement
         public ICollectionView GroupDbView { get; }
         public ICollectionView UserDbView { get; }
         public ICollectionView PastView { get; }
-        public ICollectionView StickerView { get; }
         public ICollectionView PrintView { get; }
+        public ICollectionView EmojiView { get; }
+
 
         private PlayerViewModel? _selectedActive;
         public PlayerViewModel? SelectedActive 
@@ -77,6 +78,48 @@ namespace Tailgrab.PlayerManagement
             }
         }
 
+        private string _worldId = string.Empty;
+        public string WorldId
+        {
+            get => _worldId;
+            set
+            {
+                if (_worldId != value)
+                {
+                    _worldId = value;
+                    OnPropertyChanged(nameof(WorldId));
+                }
+            }
+        }
+
+        private string _instanceId = string.Empty;
+        public string InstanceId
+        {
+            get => _instanceId;
+            set
+            {
+                if (_instanceId != value)
+                {
+                    _instanceId = value;
+                    OnPropertyChanged(nameof(InstanceId));
+                }
+            }
+        }
+
+        private string _elapsedTime = "00:00:00";
+        public string ElapsedTime
+        {
+            get => _elapsedTime;
+            set
+            {
+                if (_elapsedTime != value)
+                {
+                    _elapsedTime = value;
+                    OnPropertyChanged(nameof(ElapsedTime));
+                }
+            }
+        }
+
         public PlayerViewModel? SelectedPast { get; set; }
         public static Logger logger = LogManager.GetCurrentClassLogger();
 
@@ -96,9 +139,8 @@ namespace Tailgrab.PlayerManagement
             PastView = CollectionViewSource.GetDefaultView(PastPlayers);
             PastView.SortDescriptions.Add(new SortDescription("InstanceEndTime", ListSortDirection.Descending));
 
-            StickerView = CollectionViewSource.GetDefaultView(StickerPlayers);
-
             PrintView = CollectionViewSource.GetDefaultView(PrintPlayers);
+            EmojiView = CollectionViewSource.GetDefaultView(EmojiPlayers);
 
             AvatarDbItems = new AvatarVirtualizingCollection(_serviceRegistry);
             AvatarDbView = CollectionViewSource.GetDefaultView(AvatarDbItems);
@@ -128,7 +170,8 @@ namespace Tailgrab.PlayerManagement
             var vr2fa = ConfigStore.LoadSecret(Tailgrab.Common.Common.Registry_VRChat_Web_2FactorKey);
             var ollamaKey = ConfigStore.LoadSecret(Tailgrab.Common.Common.Registry_Ollama_API_Key);
             var ollamaEndpoint = ConfigStore.LoadSecret(Tailgrab.Common.Common.Registry_Ollama_API_Endpoint) ?? Tailgrab.Common.Common.Default_Ollama_API_Endpoint;
-            var ollamaPrompt = ConfigStore.LoadSecret(Tailgrab.Common.Common.Registry_Ollama_API_Prompt) ?? Tailgrab.Common.Common.Default_Ollama_API_Prompt;
+            var ollamaProfilePrompt = ConfigStore.LoadSecret(Tailgrab.Common.Common.Registry_Ollama_API_Prompt) ?? Tailgrab.Common.Common.Default_Ollama_API_Prompt;
+            var ollamaImagePrompt = ConfigStore.LoadSecret(Tailgrab.Common.Common.Registry_Ollama_API_Image_Prompt) ?? Tailgrab.Common.Common.Default_Ollama_API_Image_Prompt;
             var ollamaModel = ConfigStore.LoadSecret(Tailgrab.Common.Common.Registry_Ollama_API_Model) ?? Tailgrab.Common.Common.Default_Ollama_API_Model;
             var avatarGistUri = GetStoredUri(Tailgrab.Common.Common.Registry_Avatar_Gist);
             var groupGistUri = GetStoredUri(Tailgrab.Common.Common.Registry_Group_Gist);
@@ -140,7 +183,8 @@ namespace Tailgrab.PlayerManagement
             if (!string.IsNullOrEmpty(ollamaKey)) VrOllamaBox.ToolTip = "Stored (hidden)";
             if (!string.IsNullOrEmpty(ollamaEndpoint)) VrOllamaEndpointBox.Text = ollamaEndpoint;
             if (!string.IsNullOrEmpty(ollamaModel)) VrOllamaModelBox.Text = ollamaModel;
-            if (!string.IsNullOrEmpty(ollamaPrompt)) VrOllamaPromptBox.Text = ollamaPrompt;
+            if (!string.IsNullOrEmpty(ollamaProfilePrompt)) VrOllamaPromptBox.Text = ollamaProfilePrompt;
+            if (!string.IsNullOrEmpty(ollamaImagePrompt)) VrOllamaImagePromptBox.Text = ollamaImagePrompt;
 
             if (!string.IsNullOrEmpty(avatarGistUri)) avatarGistUrl.Text = avatarGistUri;
             if (!string.IsNullOrEmpty(groupGistUri)) groupGistUrl.Text = groupGistUri;
@@ -191,6 +235,59 @@ namespace Tailgrab.PlayerManagement
 
             this.Closed += (s, e) => Dispose();
         }
+        private void SaveConfig_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                // Save to registry protected store
+                ConfigStore.SaveSecret(Tailgrab.Common.Common.Registry_VRChat_Web_UserName, VrUserBox.Text ?? string.Empty);
+                if (!string.IsNullOrEmpty(VrPassBox.Password)) ConfigStore.SaveSecret(Tailgrab.Common.Common.Registry_VRChat_Web_Password, VrPassBox.Password);
+                if (!string.IsNullOrEmpty(Vr2FaBox.Password)) ConfigStore.SaveSecret(Tailgrab.Common.Common.Registry_VRChat_Web_2FactorKey, Vr2FaBox.Password);
+                if (!string.IsNullOrEmpty(VrOllamaBox.Password)) ConfigStore.SaveSecret(Tailgrab.Common.Common.Registry_Ollama_API_Key, VrOllamaBox.Password);
+                ConfigStore.SaveSecret(Tailgrab.Common.Common.Registry_Ollama_API_Endpoint, VrOllamaEndpointBox.Text ?? Tailgrab.Common.Common.Default_Ollama_API_Endpoint);
+                ConfigStore.SaveSecret(Tailgrab.Common.Common.Registry_Ollama_API_Prompt, VrOllamaPromptBox.Text ?? Tailgrab.Common.Common.Default_Ollama_API_Prompt);
+                ConfigStore.SaveSecret(Tailgrab.Common.Common.Registry_Ollama_API_Image_Prompt, VrOllamaImagePromptBox.Text ?? Tailgrab.Common.Common.Default_Ollama_API_Image_Prompt);
+                ConfigStore.SaveSecret(Tailgrab.Common.Common.Registry_Ollama_API_Model, VrOllamaModelBox.Text ?? Tailgrab.Common.Common.Default_Ollama_API_Model);
+
+                PutStoredUri(Common.Common.Registry_Avatar_Gist, avatarGistUrl.Text);
+                PutStoredUri(Common.Common.Registry_Group_Gist, groupGistUrl.Text);
+
+                // Save alert sound selections (or delete if none)
+                if (AvatarAlertCombo.SelectedItem is string avatarSound && !string.IsNullOrEmpty(avatarSound))
+                {
+                    ConfigStore.SaveSecret(Tailgrab.Common.Common.Registry_Alert_Avatar, avatarSound);
+                }
+                else
+                {
+                    ConfigStore.DeleteSecret(Tailgrab.Common.Common.Registry_Alert_Avatar);
+                }
+
+                if (GroupAlertCombo.SelectedItem is string groupSound && !string.IsNullOrEmpty(groupSound))
+                {
+                    ConfigStore.SaveSecret(Tailgrab.Common.Common.Registry_Alert_Group, groupSound);
+                }
+                else
+                {
+                    ConfigStore.DeleteSecret(Tailgrab.Common.Common.Registry_Alert_Group);
+                }
+
+                if (ProfileAlertCombo.SelectedItem is string profileSound && !string.IsNullOrEmpty(profileSound))
+                {
+                    ConfigStore.SaveSecret(Tailgrab.Common.Common.Registry_Alert_Profile, profileSound);
+                }
+                else
+                {
+                    ConfigStore.DeleteSecret(Tailgrab.Common.Common.Registry_Alert_Profile);
+                }
+
+                System.Windows.MessageBox.Show("Configuration saved. Restart the Applicaton for all changes to take affect.", "Config", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                System.Windows.MessageBox.Show($"Failed to save configuration: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
 
         private void StatusBarTimer_Tick(object? sender, EventArgs e)
         {
@@ -201,10 +298,33 @@ namespace Tailgrab.PlayerManagement
 
                 AvatarQueueLength = avatarManager?.GetQueueCount() ?? 0;
                 OllamaQueueLength = ollamaClient?.GetQueueSize() ?? 0;
+
+                // Update session info
+                var currentSession = PlayerManager.CurrentSession;
+                if (currentSession != null)
+                {
+                    // Check if session changed
+                    if (WorldId != currentSession.WorldId || InstanceId != currentSession.InstanceId)
+                    {
+                        WorldId = currentSession.WorldId ?? string.Empty;
+                        InstanceId = currentSession.InstanceId ?? string.Empty;                       
+                    }
+
+                    // Update elapsed time
+                    var elapsed = DateTime.Now - currentSession.startDateTime;
+                    int hours = (int)elapsed.TotalHours;
+                    int minutes = elapsed.Minutes;
+                    int seconds = elapsed.Seconds;
+                    ElapsedTime = $"{hours:D3}:{minutes:D2}:{seconds:D2}";
+                } 
+                else
+                {
+                    ElapsedTime = "000:00:00";
+                }
             }
             catch (Exception ex)
             {
-                logger.Error(ex, "Error updating status bar queue lengths");
+                logger.Error(ex, "Error updating status bar");
             }
         }
 
@@ -344,58 +464,6 @@ namespace Tailgrab.PlayerManagement
                     }
                 }
                 catch { }
-            }
-        }
-
-        private void SaveConfig_Click(object sender, RoutedEventArgs e)
-        {
-            try
-            {
-                // Save to registry protected store
-                ConfigStore.SaveSecret(Tailgrab.Common.Common.Registry_VRChat_Web_UserName, VrUserBox.Text ?? string.Empty);
-                if (!string.IsNullOrEmpty(VrPassBox.Password)) ConfigStore.SaveSecret(Tailgrab.Common.Common.Registry_VRChat_Web_Password, VrPassBox.Password);
-                if (!string.IsNullOrEmpty(Vr2FaBox.Password)) ConfigStore.SaveSecret(Tailgrab.Common.Common.Registry_VRChat_Web_2FactorKey, Vr2FaBox.Password);
-                if (!string.IsNullOrEmpty(VrOllamaBox.Password)) ConfigStore.SaveSecret(Tailgrab.Common.Common.Registry_Ollama_API_Key, VrOllamaBox.Password);
-                ConfigStore.SaveSecret(Tailgrab.Common.Common.Registry_Ollama_API_Endpoint, VrOllamaEndpointBox.Text ?? Tailgrab.Common.Common.Default_Ollama_API_Endpoint);
-                ConfigStore.SaveSecret(Tailgrab.Common.Common.Registry_Ollama_API_Prompt, VrOllamaPromptBox.Text ?? Tailgrab.Common.Common.Default_Ollama_API_Prompt);
-                ConfigStore.SaveSecret(Tailgrab.Common.Common.Registry_Ollama_API_Model, VrOllamaModelBox.Text ?? Tailgrab.Common.Common.Default_Ollama_API_Model);
-
-                PutStoredUri(Common.Common.Registry_Avatar_Gist, avatarGistUrl.Text);
-                PutStoredUri(Common.Common.Registry_Group_Gist, groupGistUrl.Text);
-
-                // Save alert sound selections (or delete if none)
-                if (AvatarAlertCombo.SelectedItem is string avatarSound && !string.IsNullOrEmpty(avatarSound))
-                {
-                    ConfigStore.SaveSecret(Tailgrab.Common.Common.Registry_Alert_Avatar, avatarSound);
-                }
-                else
-                {
-                    ConfigStore.DeleteSecret(Tailgrab.Common.Common.Registry_Alert_Avatar);
-                }
-
-                if (GroupAlertCombo.SelectedItem is string groupSound && !string.IsNullOrEmpty(groupSound))
-                {
-                    ConfigStore.SaveSecret(Tailgrab.Common.Common.Registry_Alert_Group, groupSound);
-                }
-                else
-                {
-                    ConfigStore.DeleteSecret(Tailgrab.Common.Common.Registry_Alert_Group);
-                }
-
-                if (ProfileAlertCombo.SelectedItem is string profileSound && !string.IsNullOrEmpty(profileSound))
-                {
-                    ConfigStore.SaveSecret(Tailgrab.Common.Common.Registry_Alert_Profile, profileSound);
-                }
-                else
-                {
-                    ConfigStore.DeleteSecret(Tailgrab.Common.Common.Registry_Alert_Profile);
-                }
-
-                System.Windows.MessageBox.Show("Configuration saved. Restart the Applicaton for all changes to take affect.", "Config", MessageBoxButton.OK, MessageBoxImage.Information);
-            }
-            catch (Exception ex)
-            {
-                System.Windows.MessageBox.Show($"Failed to save configuration: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -640,8 +708,8 @@ namespace Tailgrab.PlayerManagement
                 case PlayerChangedEventArgs.ChangeType.Cleared:
                     ActivePlayers.Clear();
                     PastPlayers.Clear();
-                    StickerPlayers.Clear();
                     PrintPlayers.Clear();
+                    EmojiPlayers.Clear();
                     break;
             }
         }
@@ -650,8 +718,8 @@ namespace Tailgrab.PlayerManagement
         {
             var vm = ActivePlayers.FirstOrDefault(x => x.UserId == p.UserId);
             var vmPast = PastPlayers.FirstOrDefault(x => x.UserId == p.UserId);
-            var vmSticker = StickerPlayers.FirstOrDefault(x => x.UserId == p.UserId);
             var vmPrint = PrintPlayers.FirstOrDefault(x => x.UserId == p.UserId);
+            var vmEmoji = EmojiPlayers.FirstOrDefault(x => x.UserId == p.UserId);
 
             if (p.InstanceEndTime == null)
             {
@@ -666,29 +734,6 @@ namespace Tailgrab.PlayerManagement
                     ActivePlayers.Add(newVm);
                 }
 
-                // Ensure not in past or sticker
-                if (vmPast != null)
-                {
-                    PastPlayers.Remove(vmPast);
-                }
-                if (vmSticker != null)
-                {
-                    StickerPlayers.Remove(vmSticker);
-                }
-
-                // If player has a sticker URL, add/update sticker list
-                if (!string.IsNullOrEmpty(p.LastStickerUrl))
-                {
-                    if (vmSticker != null)
-                    {
-                        vmSticker.UpdateFrom(p);
-                    }
-                    else
-                    {
-                        StickerPlayers.Add(new PlayerViewModel(p));
-                    }
-                }
-
                 // If player has prints, add/update print list
                 if (p.PrintData != null && p.PrintData.Count > 0)
                 {
@@ -699,6 +744,19 @@ namespace Tailgrab.PlayerManagement
                     else
                     {
                         PrintPlayers.Add(new PlayerViewModel(p));
+                    }
+                }
+
+                // If player has Emojis, add/update emoji list
+                if (p.Inventory != null && p.Inventory.Count > 0)
+                {
+                    if (vmEmoji != null)
+                    {
+                        vmEmoji.UpdateFrom(p);
+                    }
+                    else
+                    {
+                        EmojiPlayers.Add(new PlayerViewModel(p));
                     }
                 }
             }
@@ -723,6 +781,11 @@ namespace Tailgrab.PlayerManagement
                 if (vmPrint != null)
                 {
                     PrintPlayers.Remove(vmPrint);
+                }
+                // move Emoji if present
+                if (vmEmoji != null)
+                {
+                    EmojiPlayers.Remove(vmEmoji);
                 }
             }
         }
@@ -783,26 +846,6 @@ namespace Tailgrab.PlayerManagement
 
             var toRemovePast = PastPlayers.Where(x => !userIds.Contains(x.UserId) && string.IsNullOrEmpty(x.InstanceEndTime)).ToList();
             foreach (var rm in toRemovePast) PastPlayers.Remove(rm);
-
-            var toRemoveSticker = StickerPlayers.Where(x => !userIds.Contains(x.UserId)).ToList();
-            foreach (var rm in toRemoveSticker) StickerPlayers.Remove(rm);
-
-            // Rebuild sticker list for players who have LastStickerUrl
-            foreach (var player in players)
-            {
-                if (!string.IsNullOrEmpty(player.LastStickerUrl))
-                {
-                    var existing = StickerPlayers.FirstOrDefault(x => x.UserId == player.UserId);
-                    if (existing != null)
-                    {
-                        existing.UpdateFrom(player);
-                    }
-                    else
-                    {
-                        StickerPlayers.Add(new PlayerViewModel(player));
-                    }
-                }
-            }
         }
 
         // Column header click sorting ------------------------------------------------
@@ -984,30 +1027,6 @@ namespace Tailgrab.PlayerManagement
 
         #endregion
 
-        #region Sticker handlers
-
-        private void StickersApplyFilter_Click(object sender, RoutedEventArgs e)
-        {
-            ApplyFilter(StickerView, StickersFilterBox.Text);
-        }
-
-        private void StickersClearFilter_Click(object sender, RoutedEventArgs e)
-        {
-            StickersFilterBox.Text = string.Empty;
-            ApplyFilter(StickerView, string.Empty);
-        }
-
-        private void StickerFilterBySelected_Click(object sender, RoutedEventArgs e)
-        {
-            if (SelectedPast != null)
-            {
-                StickersFilterBox.Text = SelectedPast.DisplayName;
-                ApplyFilter(StickerView, PastFilterBox.Text);
-            }
-        }
-
-        #endregion
-
         #region Print handlers
 
         private void PrintApplyFilter_Click(object sender, RoutedEventArgs e)
@@ -1030,8 +1049,6 @@ namespace Tailgrab.PlayerManagement
             }
         }
 
-        #endregion
-
         private void PrintHyperlink_RequestNavigate(object? sender, System.Windows.Navigation.RequestNavigateEventArgs e)
         {
             try
@@ -1049,6 +1066,48 @@ namespace Tailgrab.PlayerManagement
             }
             e.Handled = true;
         }
+        #endregion
+
+        #region Emoji handlers
+
+        private void EmojiApplyFilter_Click(object sender, RoutedEventArgs e)
+        {
+            ApplyFilter(EmojiView, EmojiFilterBox.Text);
+        }
+
+        private void EmojiClearFilter_Click(object sender, RoutedEventArgs e)
+        {
+            EmojiFilterBox.Text = string.Empty;
+            ApplyFilter(EmojiView, string.Empty);
+        }
+
+        private void EmojiFilterBySelected_Click(object sender, RoutedEventArgs e)
+        {
+            if (SelectedPast != null)
+            {
+                EmojiFilterBox.Text = SelectedPast.DisplayName;
+                ApplyFilter(EmojiView, PastFilterBox.Text);
+            }
+        }
+
+        private void EmojiHyperlink_RequestNavigate(object? sender, System.Windows.Navigation.RequestNavigateEventArgs e)
+        {
+            try
+            {
+                logger.Info($"Opening Emoji URL: {e.Uri}");
+                var psi = new System.Diagnostics.ProcessStartInfo(e.Uri.AbsoluteUri)
+                {
+                    UseShellExecute = true
+                };
+                System.Diagnostics.Process.Start(psi);
+            }
+            catch (Exception ex)
+            {
+                logger?.Error(ex, "Failed to open emoji URL");
+            }
+            e.Handled = true;
+        }
+        #endregion
 
         private void ApplyFilter(ICollectionView view, string filterText)
         {
@@ -1142,6 +1201,7 @@ namespace Tailgrab.PlayerManagement
         public string WatchCode { get; private set; } = string.Empty;
         public string History { get; set; } = string.Empty;
         public ObservableCollection<PrintInfoViewModel> Prints { get; private set; } = new ObservableCollection<PrintInfoViewModel>();
+        public ObservableCollection<EmojiInfoViewModel> Emojis { get; private set; } = new ObservableCollection<EmojiInfoViewModel>();
 
         public string HighlightClass
         {
@@ -1176,6 +1236,13 @@ namespace Tailgrab.PlayerManagement
                 foreach (var pr in p.PrintData.Values)
                 {
                     Prints.Add(new PrintInfoViewModel(pr));
+                }
+            }
+            if (p.Inventory != null)
+            {
+                foreach (var inv in p.Inventory)
+                {
+                    Emojis.Add(new EmojiInfoViewModel(inv));
                 }
             }
 
@@ -1218,6 +1285,15 @@ namespace Tailgrab.PlayerManagement
                     Prints.Add(new PrintInfoViewModel(pr));
                 }
             }
+            if (p.Inventory != null)
+            {
+                Emojis.Clear();
+                foreach (var inv in p.Inventory)
+                {
+                    Emojis.Add(new EmojiInfoViewModel(inv));
+                }
+            }
+
 
             string history = string.Empty;
             foreach (var hist in p.Events)
@@ -1268,6 +1344,22 @@ namespace Tailgrab.PlayerManagement
             CreatedAt = p.CreatedAt;
             PrintUrl = p.Files.Image;
             AuthorName = p.AuthorName;
+        }
+    }
+    public class EmojiInfoViewModel
+    {
+        public string InventoryId { get; set; }
+        public DateTime SpawnedAt { get; set; }
+        public string ImageUrl { get; set; }       
+        public string InventoryType { get; set; }
+        public string AIEvalutation { get; set; }
+        public EmojiInfoViewModel(PlayerInventory i)
+        {
+            InventoryId = i.InventoryId;
+            SpawnedAt = i.SpawnedAt;
+            ImageUrl = i.ItemUrl;
+            InventoryType = i.InventoryType;
+            AIEvalutation = i.AIEvaluation;
         }
     }
 }

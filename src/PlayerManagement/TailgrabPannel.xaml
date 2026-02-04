@@ -276,87 +276,6 @@
                 </Grid>
             </TabItem>
 
-            <TabItem Header="Stickers">
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="267*"/>
-                        <ColumnDefinition Width="791*"/>
-                    </Grid.ColumnDefinitions>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="*" />
-                    </Grid.RowDefinitions>
-
-                    <StackPanel Orientation="Horizontal" Margin="0,0,0,6" Grid.ColumnSpan="2">
-                        <TextBox Name="StickersFilterBox" Width="300" Margin="0,0,8,0" />
-                        <Button Content="Apply Filter" Click="StickersApplyFilter_Click" Margin="0,0,6,0"/>
-                        <Button Content="Clear Filter" Click="StickersClearFilter_Click"/>
-                    </StackPanel>
-
-                    <ListView Name="StickersListView" Grid.Row="1" ItemsSource="{Binding StickerView}" Grid.ColumnSpan="2">
-                        <ListView.View>
-                            <GridView>
-                                <GridViewColumn Width="280">
-                                    <GridViewColumn.Header>
-                                        <GridViewColumnHeader Content="User ID" Tag="UserId" Click="GridViewColumnHeader_Click"/>
-                                    </GridViewColumn.Header>
-                                    <GridViewColumn.CellTemplate>
-                                        <DataTemplate>
-                                            <TextBlock Text="{Binding UserId}" />
-                                        </DataTemplate>
-                                    </GridViewColumn.CellTemplate>
-                                </GridViewColumn>
-
-                                <GridViewColumn Width="180">
-                                    <GridViewColumn.Header>
-                                        <GridViewColumnHeader Content="Display Name" Tag="DisplayName" Click="GridViewColumnHeader_Click"/>
-                                    </GridViewColumn.Header>
-                                    <GridViewColumn.CellTemplate>
-                                        <DataTemplate>
-                                            <TextBlock Text="{Binding DisplayName}" TextWrapping="NoWrap"/>
-                                        </DataTemplate>
-                                    </GridViewColumn.CellTemplate>
-                                </GridViewColumn>
-
-                                <GridViewColumn Width="280">
-                                    <GridViewColumn.Header>
-                                        <GridViewColumnHeader Content="Last Sticker URL" Tag="LastStickerUrl" Click="GridViewColumnHeader_Click"/>
-                                    </GridViewColumn.Header>
-                                    <GridViewColumn.CellTemplate>
-                                        <DataTemplate>
-                                            <TextBlock Text="{Binding LastStickerUrl}" TextWrapping="NoWrap" />
-                                        </DataTemplate>
-                                    </GridViewColumn.CellTemplate>
-                                </GridViewColumn>
-
-                                <GridViewColumn Width="120">
-                                    <GridViewColumn.Header>
-                                        <GridViewColumnHeader Content="Preview" />
-                                    </GridViewColumn.Header>
-                                    <GridViewColumn.CellTemplate>
-                                        <DataTemplate>
-                                            <Image Width="100" Height="100" Stretch="Uniform" Source="{Binding LastStickerImage}" />
-                                        </DataTemplate>
-                                    </GridViewColumn.CellTemplate>
-                                </GridViewColumn>
-
-                                <GridViewColumn Width="80">
-                                    <GridViewColumn.Header>
-                                        <GridViewColumnHeader Content="Actions" />
-                                    </GridViewColumn.Header>
-                                    <GridViewColumn.CellTemplate>
-                                        <DataTemplate>
-                                            <Button Content="Copy" Click="CopyPlayer_Click" Padding="4,2"/>
-                                        </DataTemplate>
-                                    </GridViewColumn.CellTemplate>
-                                </GridViewColumn>
-
-                            </GridView>
-                        </ListView.View>
-                    </ListView>
-                </Grid>
-            </TabItem>
-
             <TabItem Header="Prints">
                 <Grid>
                     <Grid.RowDefinitions>
@@ -410,11 +329,62 @@
                 </Grid>
             </TabItem>
 
-            <TabItem Header="Emoji">
-                <Grid>
-                    <TextBlock Margin="12" Text="Emoji view not implementable w/o VR Chat exposing more data" />
-                </Grid>
-            </TabItem>
+            <TabItem Header="Emoji and Stickers">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                            <TextBox Name="EmojiFilterBox" Width="300" Margin="0,0,8,0" />
+                            <Button Content="Apply Filter" Click="EmojiApplyFilter_Click" Margin="0,0,6,0"/>
+                            <Button Content="Clear Filter" Click="EmojiClearFilter_Click"/>
+                        </StackPanel>
+
+                        <!-- Show each player and their prints -->
+                        <ListView Name="EmojiListView" Grid.Row="1" ItemsSource="{Binding EmojiView}">
+                            <ListView.ItemTemplate>
+                                <DataTemplate>
+                                    <Border BorderBrush="Gray" BorderThickness="0,0,0,1" Padding="6">
+                                        <StackPanel Orientation="Vertical">
+                                            <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                                <TextBlock FontWeight="Bold" Text="{Binding DisplayName}" />
+                                                <TextBlock Margin="8,0,0,0" FontStyle="Italic" Text="{Binding UserId}" />
+                                            </StackPanel>
+                                            <ScrollViewer MaxHeight="300" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                                                <ItemsControl ItemsSource="{Binding Emojis}">
+                                                    <ItemsControl.ItemTemplate>
+                                                        <DataTemplate>
+                                                            <Grid Margin="0,2,0,2">
+                                                                <Grid.ColumnDefinitions>
+                                                                    <ColumnDefinition Width="300" />
+                                                                    <ColumnDefinition Width="200" />
+                                                                    <ColumnDefinition Width="200" />
+                                                                    <ColumnDefinition Width="100" />
+                                                                    <ColumnDefinition Width="200" />
+                                                                </Grid.ColumnDefinitions>
+                                                                <TextBlock Grid.Column="0" Text="{Binding InventoryId}" />
+                                                                <TextBlock Grid.Column="1" Text="{Binding InventoryType}" />
+                                                                <TextBlock Grid.Column="2" Text="{Binding SpawnedAt, StringFormat={}{0:u}}" />
+                                                                <TextBlock Grid.Column="3" Text="{Binding AIEvalutation}" />
+                                                                <TextBlock Grid.Column="4">
+                                                                <Hyperlink NavigateUri="{Binding ImageUrl}" RequestNavigate="EmojiHyperlink_RequestNavigate">
+                                                                    <Image Source="{Binding ImageUrl}" Width="100" Stretch="Uniform" />
+                                                                </Hyperlink>
+                                                                </TextBlock>
+                                                            </Grid>
+                                                        </DataTemplate>
+                                                    </ItemsControl.ItemTemplate>
+                                                </ItemsControl>
+                                            </ScrollViewer>
+                                        </StackPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ListView.ItemTemplate>
+                        </ListView>
+                    </Grid>
+                </TabItem>
 
             <TabItem Header="Config">
                 <TabControl>
@@ -700,9 +670,11 @@
                                     <Label Grid.Row="2" Grid.Column="0" Content="Ollama Model Name:" VerticalAlignment="Center"/>
                                     <TextBox Grid.Row="2" Grid.Column="1" Name="VrOllamaModelBox" Width="400" Margin="6,2" />
 
-                                    <Label Grid.Row="3" Grid.Column="0" Content="AI Prompt:" VerticalAlignment="Center"/>
-                                    <TextBox Grid.Row="3" Grid.Column="1" Name="VrOllamaPromptBox" Width="800" Height="100" Margin="6,2" TextWrapping="Wrap"/>
-
+                                    <Label Grid.Row="3" Grid.Column="0" Content="Profile AI Prompt:" VerticalAlignment="Center"/>
+                                    <TextBox Grid.Row="3" Grid.Column="1" Name="VrOllamaPromptBox" Width="800" Height="60" Margin="6,2" TextWrapping="Wrap"/>
+                                    
+                                    <Label Grid.Row="4" Grid.Column="0" Content="Image AI Prompt:" VerticalAlignment="Center"/>
+                                    <TextBox Grid.Row="4" Grid.Column="1" Name="VrOllamaImagePromptBox" Width="800" Height="60" Margin="6,2" TextWrapping="Wrap"/>
 
                                 </Grid>
                             </GroupBox>
@@ -798,6 +770,20 @@
                 <TextBlock>
                     <Run Text="Ollama Queue: "/>
                     <Run Text="{Binding OllamaQueueLength, Mode=OneWay}" FontWeight="Bold"/>
+                </TextBlock>
+            </StatusBarItem>
+            <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" />
+            <StatusBarItem HorizontalAlignment="Center">
+                <TextBlock>
+                    <Run Text="Instance: "/>
+                    <Run Text="{Binding InstanceId, Mode=OneWay}" FontWeight="Bold"/>
+                </TextBlock>
+            </StatusBarItem>
+            <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" />
+            <StatusBarItem HorizontalAlignment="Right">
+                <TextBlock>
+                    <Run Text="Elapsed: "/>
+                    <Run Text="{Binding ElapsedTime, Mode=OneWay}" FontWeight="Bold"/>
                 </TextBlock>
             </StatusBarItem>
         </StatusBar>

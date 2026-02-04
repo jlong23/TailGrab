@@ -23,7 +23,8 @@ namespace Tailgrab.PlayerManagement
             Moderation,
             GroupWatch,
             ProfileWatch,
-            AvatarWatch
+            AvatarWatch,
+            Emoji
         }
 
         public DateTime EventTime { get; set; } = DateTime.Now;
@@ -37,6 +38,25 @@ namespace Tailgrab.PlayerManagement
         }
     }
 
+    public class PlayerInventory
+    {
+        public string InventoryId { get; set; }
+        public string ItemName { get; set; }
+        public string ItemUrl { get; set; }
+        public string InventoryType { get; set; }
+        public string AIEvaluation { get; set; }
+        public DateTime SpawnedAt { get; set; }
+        public PlayerInventory(string inventoryId, string itemName, string itemUrl, string inventoryType, string aIEvaluation)
+        {
+            InventoryId = inventoryId;
+            ItemName = itemName;
+            SpawnedAt = DateTime.Now;
+            ItemUrl = itemUrl;
+            InventoryType = inventoryType;
+            AIEvaluation = aIEvaluation;
+        }
+    }
+
     public class Player
     {
         public string UserId { get; set; }
@@ -47,6 +67,7 @@ namespace Tailgrab.PlayerManagement
         public DateTime InstanceStartTime { get; set; }
         public DateTime? InstanceEndTime { get; set; }
         public List<PlayerEvent> Events { get; set; } = new List<PlayerEvent>();
+        public List<PlayerInventory> Inventory { get; set; } = new List<PlayerInventory>();
         public SessionInfo Session { get; set; }
         public string? LastStickerUrl { get; set; } = string.Empty;
 
@@ -167,10 +188,12 @@ namespace Tailgrab.PlayerManagement
     {
         public string WorldId { get; set; }
         public string InstanceId { get; set; }
+        public DateTime startDateTime { get; } = DateTime.Now;
         public SessionInfo(string worldId, string instanceId)
         {
             WorldId = worldId;
             InstanceId = instanceId;
+            startDateTime = DateTime.Now;
         }
     }
 
@@ -198,11 +221,10 @@ namespace Tailgrab.PlayerManagement
     {
         private ServiceRegistry serviceRegistry;
 
-        private static Dictionary<int, Player> playersByNetworkId = new Dictionary<int, Player>();
         private static Dictionary<string, Player> playersByUserId = new Dictionary<string, Player>();
-        private static Dictionary<string, Player> playersByDisplayName = new Dictionary<string, Player>();
+        private static Dictionary<int, string> userIdByNetworkId = new Dictionary<int, string>();
+        private static Dictionary<string, string> userIdByDisplayName = new Dictionary<string, string>();
         private static Dictionary<string, string> avatarByDisplayName = new Dictionary<string, string>();
-        private static List<string> avatarsInSession = new List<string>();
 
         public static readonly AnsiColor COLOR_PREFIX_LEAVE = AnsiColor.Yellow;
         public static readonly AnsiColor COLOR_PREFIX_JOIN = AnsiColor.Green;
@@ -217,6 +239,31 @@ namespace Tailgrab.PlayerManagement
         {
             serviceRegistry = registry;
         }
+
+        public Player? GetPlayerByDisplayName(string displayName)
+        {
+            if (userIdByDisplayName.TryGetValue(displayName, out string? userId))
+            {
+                return GetPlayerByUserId(userId);
+            }
+            return null;
+        }
+
+        public Player? GetPlayerByNetworkId(int networkId)
+        {
+            if (userIdByNetworkId.TryGetValue(networkId, out string? userId))
+            {
+                return GetPlayerByUserId(userId);
+            }
+            return null;
+        }
+
+        public Player? GetPlayerByUserId(string userId)
+        {
+            playersByUserId.TryGetValue(userId, out Player? player);
+            return player;
+        }
+
 
         public void OnPlayerChanged(PlayerChangedEventArgs.ChangeType changeType, Player player)
         {
@@ -234,7 +281,8 @@ namespace Tailgrab.PlayerManagement
         {
             try
             {
-                if( playersByDisplayName.TryGetValue(displayName, out Player? player))
+                Player? player = GetPlayerByDisplayName(displayName);
+                if (player != null )
                 {
                     PlayerChanged?.Invoke(null, new PlayerChangedEventArgs(changeType, player));
                 }
@@ -270,7 +318,7 @@ namespace Tailgrab.PlayerManagement
                     // remove old display-name mapping if present
                     if (!string.IsNullOrEmpty(player.DisplayName))
                     {
-                        playersByDisplayName.Remove(player.DisplayName);
+                        userIdByDisplayName.Remove(player.DisplayName);
                     }
                     player.DisplayName = displayName;
                 }
@@ -282,12 +330,13 @@ namespace Tailgrab.PlayerManagement
                 return;
             }
 
+            // Check for existing avatar mapping
             if (avatarByDisplayName.TryGetValue(displayName, out string? avatarName))
             {
                 if (avatarName != null)
                 {
                     player.AvatarName = avatarName;
-                    AddPlayerEventByDisplayName(displayName, PlayerEvent.EventType.AvatarChange, $"Joined with Avatar: {avatarName}");
+                    player.Events.Add(new PlayerEvent(PlayerEvent.EventType.AvatarChange, $"Joined with Avatar: {avatarName}"));
                     if (handler.LogOutput)
                     {
                         logger.Info($"{COLOR_PREFIX_JOIN.GetAnsiEscape()}\tAvatar on Join: {avatarName}{COLOR_RESET.GetAnsiEscape()}");
@@ -297,14 +346,15 @@ namespace Tailgrab.PlayerManagement
 
             serviceRegistry.GetOllamaAPIClient().CheckUserProfile(userId);
             playersByUserId[userId] = player;
-            playersByDisplayName[displayName] = player;
+            userIdByDisplayName[displayName] = player.UserId;
 
             OnPlayerChanged(PlayerChangedEventArgs.ChangeType.Added, player);
         }
 
         public void PlayerLeft(string displayName, AbstractLineHandler handler)
         {
-            if (playersByDisplayName.TryGetValue(displayName, out Player? player))
+            Player? player = GetPlayerByDisplayName(displayName);
+            if (player != null)
             {
                 player.InstanceEndTime = DateTime.Now;
                 TimeSpan timeDifference = (TimeSpan)(player.InstanceEndTime - player.InstanceStartTime);
@@ -335,8 +385,9 @@ namespace Tailgrab.PlayerManagement
                 // Raise event with updated player before removing from internal dictionaries
                 OnPlayerChanged(PlayerChangedEventArgs.ChangeType.Removed, player);
 
-                playersByDisplayName.Remove(displayName);
-                playersByNetworkId.Remove(player.NetworkId);
+                userIdByDisplayName.Remove(displayName);
+                avatarByDisplayName.Remove(displayName);
+                userIdByNetworkId.Remove(player.NetworkId);
                 playersByUserId.Remove(player.UserId);
                 if (handler.LogOutput)
                 {
@@ -345,30 +396,13 @@ namespace Tailgrab.PlayerManagement
             }
         }
 
-        public Player? GetPlayerByNetworkId(int networkId)
-        {
-            playersByNetworkId.TryGetValue(networkId, out Player? player);
-            return player;
-        }
-
-        public Player? GetPlayerByUserId(string userId)
-        {
-            playersByUserId.TryGetValue(userId, out Player? player);
-            return player;
-        }
-
-        public Player? GetPlayerByDisplayName(string displayName)
-        {
-            playersByDisplayName.TryGetValue(displayName, out Player? player);
-            return player;
-        }
-
         public Player? AssignPlayerNetworkId(string displayName, int networkId)
         {
-            if (playersByDisplayName.TryGetValue(displayName, out Player? player))
+            Player? player = GetPlayerByDisplayName(displayName);
+            if (player != null)
             {
                 player.NetworkId = networkId;
-                playersByNetworkId[networkId] = player;
+                userIdByNetworkId[networkId] = player.UserId;
             }
 
             return player;
@@ -392,10 +426,9 @@ namespace Tailgrab.PlayerManagement
                 OnPlayerChanged(PlayerChangedEventArgs.ChangeType.Removed, player);
             }
 
-            playersByNetworkId.Clear();
+            userIdByNetworkId.Clear();
             playersByUserId.Clear();
-            playersByDisplayName.Clear();
-            avatarsInSession.Clear();
+            userIdByDisplayName.Clear();
 
             // Also a global cleared notification (consumers may want to reset)
             OnPlayerChanged(PlayerChangedEventArgs.ChangeType.Cleared, new Player("", "", CurrentSession) { InstanceStartTime = DateTime.MinValue });
@@ -419,19 +452,18 @@ namespace Tailgrab.PlayerManagement
 
         public Player? AddPlayerEventByDisplayName(string displayName, PlayerEvent.EventType eventType, string eventDescription)
         {
-            if (playersByDisplayName.TryGetValue(displayName, out Player? player))
+
+            if(userIdByDisplayName.TryGetValue(displayName, out string? userId))
             {
-                PlayerEvent newEvent = new PlayerEvent(eventType, eventDescription);
-                player.AddEvent(newEvent);
-                return player;
+                return AddPlayerEventByUserId(userId, eventType, eventDescription);
             }
 
             return null;
         }
 
-        public Player? AddPlayerEventByUserId(string displayName, PlayerEvent.EventType eventType, string eventDescription)
+        public Player? AddPlayerEventByUserId(string userId, PlayerEvent.EventType eventType, string eventDescription)
         {
-            if (playersByUserId.TryGetValue(displayName, out Player? player))
+            if (playersByUserId.TryGetValue(userId, out Player? player))
             {
                 PlayerEvent newEvent = new PlayerEvent(eventType, eventDescription);
                 player.AddEvent(newEvent);
@@ -443,34 +475,30 @@ namespace Tailgrab.PlayerManagement
 
         public void SetAvatarForPlayer(string displayName, string avatarName)
         {
+            avatarByDisplayName[displayName] = avatarName;
+
             bool watchedAvatar = serviceRegistry.GetAvatarManager().CheckAvatarByName(avatarName);
             if (watchedAvatar)
             {
                 logger.Info($"{COLOR_PREFIX_LEAVE.GetAnsiEscape()}Watched Avatar Detected for Player {displayName}: {avatarName}{COLOR_RESET.GetAnsiEscape()}");
             }
 
-            avatarByDisplayName[displayName] = avatarName;
-            if (playersByDisplayName.TryGetValue(displayName, out var p))
+            Player? player = GetPlayerByDisplayName(displayName);
+            if (player != null)
             {
-                p.IsAvatarWatch = watchedAvatar;
-                p.AvatarName = avatarName;
+                player.IsAvatarWatch = watchedAvatar;
+                player.AvatarName = avatarName;
                 AddPlayerEventByDisplayName(displayName ?? string.Empty, PlayerEvent.EventType.AvatarWatch, $"User switched to Avatar : {avatarName}");
 
                 if (watchedAvatar)
                 {
-                    p.PenActivity = $"AV: {avatarName}";
+                    player.PenActivity = $"AV: {avatarName}";
                     AddPlayerEventByDisplayName(displayName ?? string.Empty, PlayerEvent.EventType.AvatarWatch, $"User has used a watched Avatar : {avatarName}");
 
                 }
 
-                OnPlayerChanged(PlayerChangedEventArgs.ChangeType.Updated, p);
+                OnPlayerChanged(PlayerChangedEventArgs.ChangeType.Updated, player);
             }
-
-            if (!avatarsInSession.Contains(avatarName))
-            {
-                avatarsInSession.Add(avatarName);
-            }
-
         }
 
         private void PrintPlayerInfo(Player player)
@@ -480,21 +508,104 @@ namespace Tailgrab.PlayerManagement
 
         internal void AddPenEventByDisplayName(string displayName, string eventText)
         {
-            if (playersByDisplayName.TryGetValue(displayName, out Player? player))
+            Player? player = GetPlayerByDisplayName(displayName);
+            if (player != null)
             {
                 player.PenActivity = eventText;
                 OnPlayerChanged(PlayerChangedEventArgs.ChangeType.Updated, player);
             }
         }
 
-        internal void AddInventorySpawn(string inventoryId)
+        internal async void AddInventorySpawn(string userId, string inventoryId)
         {
+            Player? player = GetPlayerByUserId(userId);
+            if (player != null)
+            {
+                string itemName = "Unknown Item";
+                string itemUrl = "";
+                string inventoryType = "Unknown Type";
+                string aiEvaluation = "OK";
 
+                try
+                {
+                    var inventoryItem = await serviceRegistry.GetVRChatAPIClient()?.GetUserInventoryItem(userId, inventoryId)!;
+                    if (inventoryItem != null)
+                    {
+                        itemName = inventoryItem.Name ?? inventoryItem.ItemType ?? "Unknown Item";
+                        itemUrl = inventoryItem.ImageUrl ?? "";
+                        inventoryType = inventoryItem.ItemTypeLabel ?? "Unknown Type";
+
+                        logger.Info($"Fetched inventory item: {itemName} / ({inventoryItem.ItemTypeLabel}) for user {userId}");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    logger.Warn($"Failed to fetch inventory item {inventoryId} / {inventoryType} for user {userId}: {ex.Message}");
+                }
+
+                if (inventoryType.Contains("Emoji") || inventoryType.Contains("Sticker"))
+                {
+                    var ollamaClient = serviceRegistry.GetOllamaAPIClient();
+                    if (ollamaClient != null)
+                    {
+                        string? evaluated = await ollamaClient.ClassifyImage(inventoryId, userId, itemUrl);
+                        // Use 'evaluated' as needed, or remove if not used
+                        if (evaluated != null)
+                        {
+                            aiEvaluation = EvaluatImage(evaluated) ?? "OK";
+                            logger.Info($"Ollama classification for inventory item {inventoryId}: {aiEvaluation}: {evaluated}");
+                        }
+                    }
+
+                    PlayerInventory inventory = new PlayerInventory(inventoryId, itemName, itemUrl, inventoryType, aiEvaluation);
+                    player.Inventory.Add(inventory);
+
+                    AddPlayerEventByUserId(userId, PlayerEvent.EventType.Emoji, $"Spawned Item: {itemName} ({inventoryId})");
+                    OnPlayerChanged(PlayerChangedEventArgs.ChangeType.Updated, player);
+                }
+            }
+        }
+
+        private static string? EvaluatImage(string? imageEvaluation)
+        {
+            if (string.IsNullOrEmpty(imageEvaluation))
+            {
+                return null;
+            }
+
+            if (CheckLines(imageEvaluation, "Sexual Content"))
+            {
+                return "Sexual Content";
+            }
+            else if (CheckLines(imageEvaluation, "Racism"))
+            {
+                return "Racism";
+            }
+            else if (CheckLines(imageEvaluation, "Gore"))
+            {
+                return "Gore";
+            }
+
+            return null;
+        }
+        private static bool CheckLines(string input, string knownString)
+        {
+            string[] lines = input.Split(new[] { '\n' }, StringSplitOptions.RemoveEmptyEntries);
+
+            if (lines.Length < 2)
+            {
+                return false;
+            }
+
+            bool firstLineContains = lines[0].Contains(knownString);
+
+            return firstLineContains;
         }
 
         internal void AddStickerEvent(string displayName, string userId, string fileURL)
         {
-            if (playersByDisplayName.TryGetValue(displayName, out Player? player))
+            Player? player = GetPlayerByDisplayName(displayName);
+            if (player != null)
             {
                 player.LastStickerUrl = fileURL;
                 AddPlayerEventByDisplayName(displayName, PlayerEvent.EventType.Sticker, $"Spawned sticker: {fileURL}");

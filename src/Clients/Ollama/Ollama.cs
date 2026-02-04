@@ -81,6 +81,103 @@ namespace Tailgrab.Clients.Ollama
 
             }
         }
+
+        public async Task<string?> ClassifyImage(string inventoryId, string userId, string imageUri)
+        {
+            logger.Debug($"Classifying image from URI: {imageUri}");
+
+            try
+            {
+                string? ollamaCloudKey = ConfigStore.LoadSecret(Tailgrab.Common.Common.Registry_Ollama_API_Key);
+                if (ollamaCloudKey == null)
+                {
+                    logger.Warn("Ollama API credentials are not set");
+                    return null;
+                }
+
+                string ollamaEndpoint = ConfigStore.LoadSecret(Tailgrab.Common.Common.Registry_Ollama_API_Endpoint) ?? Tailgrab.Common.Common.Default_Ollama_API_Endpoint;
+                
+                ImageReference? imageReference = await _serviceRegistry.GetVRChatAPIClient().GetImageReference(inventoryId, userId, imageUri);
+                if( imageReference != null ) 
+                {
+                    ImageEvaluation? imageEvaluation = CheckImageReferenceReview(imageReference);
+                    if ( imageEvaluation == null )
+                    {
+                        using (HttpClient httpClient = new HttpClient())
+                        {
+                            // Create Ollama client
+                            HttpClient ollamaHttpClient = new HttpClient();
+                            ollamaHttpClient.BaseAddress = new Uri(ollamaEndpoint);
+                            ollamaHttpClient.DefaultRequestHeaders.Add("Authorization", "Bearer " + ollamaCloudKey);
+
+                            using (OllamaApiClient ollamaApi = new OllamaApiClient(ollamaHttpClient))
+                            {
+                                string? ollamaModel = ConfigStore.LoadSecret(Tailgrab.Common.Common.Registry_Ollama_API_Model) ?? Tailgrab.Common.Common.Default_Ollama_API_Model;
+                                ollamaApi.SelectedModel = ollamaModel;
+
+                                string? ollamaPrompt = ConfigStore.LoadSecret(Tailgrab.Common.Common.Registry_Ollama_API_Image_Prompt);
+                                GenerateRequest request = new GenerateRequest
+                                {
+                                    Model = ollamaApi.SelectedModel,
+                                    Prompt = ollamaPrompt ?? Tailgrab.Common.Common.Default_Ollama_API_Image_Prompt,
+                                    Images = new[] { imageReference.Base64Data },
+                                    Stream = false
+                                };
+
+                                var response = await ollamaApi.GenerateAsync(request).StreamToEndAsync();
+
+                                logger.Debug($"Image classified for InventoryId: {imageReference.InventoryId} as {response?.Response}");
+                                SaveImageEvaluation(imageReference, response?.Response);
+
+                                return response?.Response;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        logger.Debug($"Image already classified for InventoryId: {imageReference.InventoryId}");
+                        return System.Text.Encoding.UTF8.GetString(imageEvaluation.Evaluation);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex, $"Error classifying image from URI: {imageUri}");
+            }
+
+            return null;
+        }
+
+        private ImageEvaluation? CheckImageReferenceReview( ImageReference imageReference )
+        {
+            TailgrabDBContext dBContext = _serviceRegistry.GetDBContext();
+            ImageEvaluation? evaluated = dBContext.ImageEvaluations.Find(imageReference.InventoryId);
+            if (evaluated != null)
+            {
+                logger.Debug($"Image already reviewed for InventoryId: {imageReference.InventoryId}");
+                return evaluated;
+            }
+            return null;
+        }
+
+        private void SaveImageEvaluation( ImageReference imageReference, string? response )
+        {
+            if (response != null)
+            {
+                ImageEvaluation evaluation = new ImageEvaluation
+                {
+                    InventoryId = imageReference.InventoryId,
+                    UserId = imageReference.UserId,
+                    Md5checksum = imageReference.Md5Hash,
+                    Evaluation = System.Text.Encoding.UTF8.GetBytes(response ?? string.Empty),
+                    LastDateTime = DateTime.UtcNow
+                };
+                TailgrabDBContext dBContext = _serviceRegistry.GetDBContext();
+                dBContext.Add(evaluation);
+                dBContext.SaveChanges();
+            }
+        }
+
         public static async Task ProfileCheckTask(ConcurrentPriorityQueue<IHavePriority<int>, int> priorityQueue, ServiceRegistry serviceRegistry)
         {
             string? ollamaCloudKey = ConfigStore.LoadSecret(Tailgrab.Common.Common.Registry_Ollama_API_Key);
@@ -320,7 +417,6 @@ namespace Tailgrab.Clients.Ollama
             return null;
         }
 
-
         private static bool CheckLines(string input, string knownString)
         {
             string[] lines = input.Split(new[] { '\n' }, StringSplitOptions.RemoveEmptyEntries);
@@ -334,8 +430,13 @@ namespace Tailgrab.Clients.Ollama
 
             return firstLineContains;
         }
+    }
 
-
-
+    public class ImageReference
+    {
+        public string Base64Data { get; set; } = string.Empty;
+        public string Md5Hash { get; set; } = string.Empty;
+        public string InventoryId { get; set; } = string.Empty;
+        public string UserId { get; set; } = string.Empty;
     }
 }

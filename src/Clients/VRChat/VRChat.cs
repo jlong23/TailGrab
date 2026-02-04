@@ -3,9 +3,13 @@ using NLog;
 using OtpNet;
 using System.IO;
 using System.Net;
+using System.Net.Http;
+using System.Security.Policy;
+using Tailgrab.Clients.Ollama;
+using Tailgrab.Common;
 using Tailgrab.Config;
-using VRChat.API.Model;
 using VRChat.API.Client;
+using VRChat.API.Model;
 
 
 namespace Tailgrab.Clients.VRChat
@@ -208,6 +212,104 @@ namespace Tailgrab.Clients.VRChat
             return groups;
         }
 
+        public async Task<VRChatInventoryItem?> GetUserInventoryItem(string userId, string itemId)
+        {
+            VRChatInventoryItem? item = null;
+            try
+            {
+                if (_vrchat == null)
+                {
+                    logger.Error("VRChat client not initialized");
+                    return null;
+                }
+
+                string url = $"https://api.vrchat.cloud/api/1/user/{userId}/inventory/{itemId}";
+                
+                // Create HTTP client with cookies
+                var handler = new HttpClientHandler
+                {
+                    CookieContainer = new CookieContainer()
+                };
+
+                var cookies = _vrchat.GetCookies();
+                foreach (var cookie in cookies)
+                {
+                    handler.CookieContainer.Add(new Uri("https://api.vrchat.cloud"), cookie);
+                }
+
+                using var httpClient = new HttpClient(handler);
+                httpClient.DefaultRequestHeaders.Add("User-Agent", "Jarvis/1.0.0");
+
+                var response = await httpClient.GetAsync(url);
+                response.EnsureSuccessStatusCode();
+
+                var json = await response.Content.ReadAsStringAsync();
+                item = JsonConvert.DeserializeObject<VRChatInventoryItem>(json);
+                
+                if (item != null)
+                {
+                    logger.Info($"Fetched inventory item: {item.Name} ({item.ItemType}) for user {userId}");
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.Error($"Error fetching inventory item {itemId} for user {userId}: {ex.Message}");
+            }
+
+            return item;
+        }
+
+        public async Task<ImageReference?> GetImageReference(string inventoryId, string userId, string imageUri)
+        {
+            try
+            {
+                if (_vrchat == null)
+                {
+                    logger.Error("VRChat client not initialized");
+                    return null;
+                }
+
+                // Create HTTP client with cookies
+                var handler = new HttpClientHandler
+                {
+                    CookieContainer = new CookieContainer()
+                };
+
+                var cookies = _vrchat.GetCookies();
+                foreach (var cookie in cookies)
+                {
+                    handler.CookieContainer.Add(new Uri("https://api.vrchat.cloud"), cookie);
+                }
+
+                using HttpClient httpClient = new HttpClient(handler);
+                httpClient.DefaultRequestHeaders.Add("User-Agent", "Jarvis/1.0.0");
+
+                // Download the image
+                byte[] imageBytes = await httpClient.GetByteArrayAsync(imageUri);
+                string md5Hash = Checksum.CreateMD5(imageBytes);
+                string base64Image = Convert.ToBase64String(imageBytes);
+
+                ImageReference iref = new ImageReference
+                {
+                    Base64Data = base64Image,
+                    Md5Hash = md5Hash,
+                    InventoryId = inventoryId,
+                    UserId = userId
+                };
+
+                return iref;
+
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex, $"Error Downloading image from URI: {imageUri}");
+                return null;
+            }
+        }
+
+
+
+
         public Print? GetPrintInfo(string fileURL)
         {
             Print? printInfo = null;
@@ -271,7 +373,148 @@ namespace Tailgrab.Clients.VRChat
             return group;
         }
 
-        private class SerializableCookie
+        public class VRChatInventoryItem
+        {
+            [JsonProperty("id")]
+            public string Id { get; set; } = string.Empty;
+
+            [JsonProperty("name")]
+            public string Name { get; set; } = string.Empty;
+
+            [JsonProperty("description")]
+            public string Description { get; set; } = string.Empty;
+
+            [JsonProperty("itemType")]
+            public string ItemType { get; set; } = string.Empty;
+
+            [JsonProperty("itemTypeLabel")]
+            public string ItemTypeLabel { get; set; } = string.Empty;
+
+            [JsonProperty("imageUrl")]
+            public string ImageUrl { get; set; } = string.Empty;
+
+            [JsonProperty("holderId")]
+            public string HolderId { get; set; } = string.Empty;
+
+            [JsonProperty("ancestor")]
+            public string Ancestor { get; set; } = string.Empty;
+
+            [JsonProperty("ancestorHolderId")]
+            public string AncestorHolderId { get; set; } = string.Empty;
+
+            [JsonProperty("firstAncestor")]
+            public string FirstAncestor { get; set; } = string.Empty;
+
+            [JsonProperty("firstAncestorHolderId")]
+            public string FirstAncestorHolderId { get; set; } = string.Empty;
+
+            [JsonProperty("collections")]
+            public List<string> Collections { get; set; } = new List<string>();
+
+            [JsonProperty("created_at")]
+            public DateTime CreatedAt { get; set; }
+
+            [JsonProperty("updated_at")]
+            public DateTime UpdatedAt { get; set; }
+
+            [JsonProperty("template_created_at")]
+            public DateTime TemplateCreatedAt { get; set; }
+
+            [JsonProperty("template_updated_at")]
+            public DateTime TemplateUpdatedAt { get; set; }
+
+            [JsonProperty("defaultAttributes")]
+            public Dictionary<string, object> DefaultAttributes { get; set; } = new Dictionary<string, object>();
+
+            [JsonProperty("userAttributes")]
+            public Dictionary<string, object> UserAttributes { get; set; } = new Dictionary<string, object>();
+
+            [JsonProperty("equipSlot")]
+            public string EquipSlot { get; set; } = string.Empty;
+
+            [JsonProperty("equipSlots")]
+            public List<string> EquipSlots { get; set; } = new List<string>();
+
+            [JsonProperty("expiryDate")]
+            public DateTime? ExpiryDate { get; set; }
+
+            [JsonProperty("flags")]
+            public List<string> Flags { get; set; } = new List<string>();
+
+            [JsonProperty("isArchived")]
+            public bool IsArchived { get; set; }
+
+            [JsonProperty("isSeen")]
+            public bool IsSeen { get; set; }
+
+            [JsonProperty("metadata")]
+            public InventoryItemMetadata? Metadata { get; set; }
+
+            [JsonProperty("quantifiable")]
+            public bool Quantifiable { get; set; }
+
+            [JsonProperty("tags")]
+            public List<string> Tags { get; set; } = new List<string>();
+
+            [JsonProperty("templateId")]
+            public string TemplateId { get; set; } = string.Empty;
+
+            [JsonProperty("validateUserAttributes")]
+            public bool ValidateUserAttributes { get; set; }
+        }
+
+        public class InventoryItemMetadata
+        {
+            [JsonProperty("animated")]
+            public bool Animated { get; set; }
+
+            [JsonProperty("animationStyle")]
+            public string AnimationStyle { get; set; } = string.Empty;
+
+            [JsonProperty("fileId")]
+            public string FileId { get; set; } = string.Empty;
+
+            [JsonProperty("imageUrl")]
+            public string ImageUrl { get; set; } = string.Empty;
+
+            [JsonProperty("maskTag")]
+            public string MaskTag { get; set; } = string.Empty;
+        }
+
+        public class ModerationReportPayload
+        {
+            [JsonProperty("type")]
+            public string Type { get; set; } = string.Empty;
+            
+            [JsonProperty("category")]
+            public string Category { get; set; } = string.Empty;
+
+            [JsonProperty("reason")]
+            public string Reason { get; set; } = string.Empty;
+
+            [JsonProperty("contentId")]
+            public string ContentId { get; set; } = string.Empty;
+
+            [JsonProperty("description")]
+            public string Description { get; set; } = string.Empty;
+
+            [JsonProperty("details")]
+            public List<ModerationReportDetails> Details { get; set; } = new List<ModerationReportDetails>();
+        }
+
+        public class ModerationReportDetails
+        {
+            [JsonProperty("instanceType")]
+            public string InstanceType { get; set; } = string.Empty;
+
+            [JsonProperty("instanceAgeGated")]  
+            public bool InstanceAgeGated { get; set; }
+
+            [JsonProperty("holderId")]
+            public string HolderId { get; set; } = string.Empty;
+        }
+
+            private class SerializableCookie
         {
             public string Name { get; set; } = string.Empty;
             public string Value { get; set; } = string.Empty;
