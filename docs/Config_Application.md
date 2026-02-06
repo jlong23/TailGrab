@@ -37,7 +37,7 @@ Id, Name
 OLLama Cloud AI services are used to evaluate user profiles for potential bad actors based on your custom prompt criteria.  The OLLama API is called only once for a MD5 checksummed profile or Image to reduce API usage calls and cost.
 
 > [!IMPORTANT]
-> Ollama Cloud API is free at this time! (2026/02)  but may have usage limits any time; User credentials are stored in an encrypted format in the Windows Registry and used only to check on user content that has not been checked before for users in the instance you are in. 
+> Ollama Cloud API is free at this time! (2026/02)  but may have usage limits any time; User credentials are stored in an encrypted format in the Windows Registry and used only to check on user content that has not been checked before for users in the instance you are in.  Sign up at https://signin.ollama.com/ and see current pricing models https://ollama.com/pricing
 
 Ollama Endpoint is the URL to your Ollama API instance, if you are using the cloud service, this should be ```https://ollama.com``` to use the cloud default, if you are using a local instance of Ollama, this should be ```http://localhost:11434``` or the URL of the host that Ollama is installed in.
 

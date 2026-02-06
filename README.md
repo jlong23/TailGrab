@@ -1,23 +1,47 @@
-# TailGrab
+# Tailgrab
 VRChat Log Parser and Automation tool to help moderators manage trouble makers in VRChat since VRChat Management Team is not taking moderation seriously; ever.
 
+Tailgrab will read the VRChat Local Game Log files in real time, parse them for events and then trigger actions based on the configuration of the application.  The application is designed to be flexible and allow for a wide range of actions to be triggered based on the events that are parsed from the VRChat logs and alert the user to elements that may be less than honest.
+
+[<img src="./docs/tailgrab_application.png" width="400" />](./tailgrab_application.png)
+
+## Features
+- Shows a live feed of user in the current instance with their VRChat Avatar and UserID
+- When in Furry Hideout, shows user's usage of Furry Hideout Pens
+- Quick view of the user's historical avatar, pen, print, emoji and sticker usage in the current instance.
+- AI powered insights on user Profile content.
+- Quick reporting of User's Profile to the in game moderation instance
+- AI powered insights on user Image Assets used.
+- Quick reporting of User's Images to the in game moderation instance
+- Copy Button that copies the user's VRChat User Id, Display name, Instance Stats and historical activity for pasting into your favorite moderation toolset.
+- Avatar Flagging based on user directed database.
+- Group Flagging based on user directed database.
+- Historical tracking of User elapsed time seen from your usage of the application.
+- Trigger actions based on VRChat log events of "Vote To Kick" or "Group Moderation Action (Kick/Warn)", such as sending OSC Avatar Parameters, sending keystrokes to other applications, etc.
+
+## Installation
+
+> [!NOTE]
+> I am learing how to build a Installer for the appliction, but for now you will need to download the latest release and extract the zip file to a location of your choice on your Windows machine.  Then you can run the ```tailgrab.exe``` application to start monitoring your VRChat instance.
+
+### New Install
+1. Download the latest release of TailGrab from the [Latest Release](https://github.com/jlong23/Tailgrab/releases/latest) page.
+1. Extract the downloaded zip file to a location of your choice on your Windows machine.
+1. Run the ```tailgrab.exe``` application to start monitoring your VRChat instance.
+
+### Updgrade from Previous Version
+1. Download the latest release of TailGrab from the [Latest Release](https://github.com/jlong23/Tailgrab/releases/latest) page.
+1. Extract the downloaded zip file to a location of your choice on your Windows machine, but avoid overwriting your existing configuration & data files. ./config.json ./pen-network-id.csv ./sounds/* ./data/* 
+1. Run the ```tailgrab.exe -upgrade``` application to start any database upgrades.
+1. Configure any new Secrets and other configuration values that may be needed for new features added since your last version.
+1. Restart the application with ```tailgrab.exe``` to start monitoring your VRChat instance with the new version of TailGrab.
+
 ## Configuration
-See [Application Config](./docs/Config_Application.md) for details on how to configure the application to connect to API services.
+[Application Config](./docs/Config_Application.md) for details on how to configure the application to connect to API services.
 
-See [Config Line Handlers](./docs/Config_LineHandlers.md) for details on how to configure the application to respond to VRChat local game log events.
+[Config Line Handlers](./docs/Config_LineHandlers.md) for details on how to configure the application to respond to VRChat local game log events.
 
-# Capabilities
-
-The core concept of the TailGrab was to create a Windows friendly ```grep``` of VR Chat log events that would allow a group moderation team to review, get insights of bad actors and with the action framework to perform a scripted reaction to a VR Chat game log event.
-
-EG:
-A ```Vote To Kick``` is received from a patreon, the action sequence could:
-- Send a OSC Avatar Parameter(s) that change the avatar's ear position
-- Delay for a quarter of a second
-- Send a keystroke to your soundboard application
-- Send a keystroke to OBS to start recording
-
-# Usage
+## Quick Usage
 Click the windows application or open a Powershell or Command Line prompt in your windows host, change directory to where ```tailgrab.exe``` has been extracted to and start it with:
 
 ```.\tailgrab.exe```
@@ -32,7 +56,7 @@ If you need to clear all registry settings stored for TailGrab, you can run:
 
 This will remove all stored configuration and secret values from the Windows Registry for TailGrab, you can then reconfigure the application as needed, save them, restart and get back to watching the instance.
 
-## VRChat Source Log Files
+### VRChat Source Log Files
 
 By default TailGrab will look for VRChat log files in the default location of:
 
@@ -42,7 +66,7 @@ This can be overridden by passing the full path to the VRChat log files as the f
 
 ```.\\tailgrab.exe D:\MyVRChatLogs\```
 
-## Watching TailGrab Application Logs
+### Watching TailGrab Application Logs
 
 The TailGrab application will log it's internal operations to the ```./logs``` folder in the same directory as the application executable.  Each run of the application will create a new log file with a timestamp in the filename.
 
@@ -50,4 +74,6 @@ If you want to watch the application logs in real time, you can use a tool like 
 
 ```Get-Content -Path .\logs\tailgrab-2026-01-26.log -wait```
 
+## Usefull Tool Sets 
 
+DB Browser for SQLite - https://sqlitebrowser.org/
