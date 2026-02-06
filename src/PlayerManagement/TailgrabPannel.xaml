@@ -140,11 +140,11 @@
                                 <!-- Actions column -->
                                 <GridViewColumn Width="80">
                                     <GridViewColumn.Header>
-                                        <GridViewColumnHeader Content="AI Eval" />
+                                        <GridViewColumnHeader Content="Profile Rpt" />
                                     </GridViewColumn.Header>
                                     <GridViewColumn.CellTemplate>
                                         <DataTemplate>
-                                            <Button Content="Eval" Click="EvalPlayer_Click" Padding="4,2" ToolTip="{Binding AIEval}"/>
+                                            <Button Content="Report" Click="ReportPlayer_Click" Padding="4,2" ToolTip="{Binding AIEval}"/>
                                         </DataTemplate>
                                     </GridViewColumn.CellTemplate>
                                 </GridViewColumn>

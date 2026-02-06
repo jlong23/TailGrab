@@ -683,6 +683,9 @@ namespace Tailgrab.PlayerManagement
                     sb.AppendLine($"User Profile at Instance Start:\n");
                     sb.AppendLine($"{pvm.Profile}");
                     var text = sb.ToString();
+                    sb.AppendLine($"Evaluation of Profile:\n");
+                    sb.AppendLine($"{pvm.AIEval}");
+
                     System.Windows.Clipboard.SetText(text);
                     return;
                 }
@@ -766,31 +769,26 @@ namespace Tailgrab.PlayerManagement
             }
         }
 
-        private void EvalPlayer_Click(object sender, RoutedEventArgs e)
+        private void ReportPlayer_Click(object sender, RoutedEventArgs e)
         {
             if (sender is not System.Windows.Controls.Button btn) return;
 
             // Find the DataContext for the row (should be PlayerViewModel)
             if (btn.DataContext is PlayerViewModel pvm)
             {
-                // Try to find the underlying Player by UserId
-                var player = _serviceRegistry.GetPlayerManager().GetPlayerByUserId(pvm.UserId);
-                if (player != null)
+                string userId = pvm.UserId;
+                try
                 {
-                    // Build formatted string from the viewmodel alone
-                    var sb = new System.Text.StringBuilder();
-
-                    sb.AppendLine($"DisplayName: {pvm.DisplayName}");
-                    sb.AppendLine($"UserId: {pvm.UserId}");
-
-                    sb.AppendLine($"Evaluation of Profile:\n");
-                    sb.AppendLine($"{pvm.AIEval}");
-                    var text = sb.ToString();
-                    System.Windows.Clipboard.SetText(text);
-                    return;
+                    ReportProfileWindow reportWindow = new ReportProfileWindow(_serviceRegistry, userId);
+                    reportWindow.Owner = this;
+                    reportWindow.ShowDialog();
                 }
-
-                System.Windows.Clipboard.SetText("");
+                catch (Exception ex)
+                {
+                    logger.Error(ex, "Failed to open Report Inventory window");
+                    System.Windows.MessageBox.Show($"Failed to open Report Inventory window: {ex.Message}",
+                        "Error", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+                }
             }
         }
         #endregion

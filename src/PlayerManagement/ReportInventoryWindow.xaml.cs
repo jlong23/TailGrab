@@ -1,8 +1,6 @@
 using NLog;
-using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
-using Tailgrab.Common;
 using Tailgrab.Models;
 using static Tailgrab.Clients.VRChat.VRChatClient;
 

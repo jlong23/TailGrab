@@ -550,6 +550,9 @@ namespace Tailgrab.Clients.VRChat
             [JsonProperty("instanceAgeGated")]  
             public bool InstanceAgeGated { get; set; }
 
+            [JsonProperty("userInSameInstance")]
+            public bool UserInSameInstance { get; set; } = true;
+
             [JsonProperty("holderId")]
             public string HolderId { get; set; } = string.Empty;
         }
